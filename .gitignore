@@ -1,0 +1,10 @@
+﻿
+**/bin/
+**/obj/
+**/.vs/
+**/.idea/
+**/build/
+**/.gradle/
+*firebase-adminsdk.json
+google-services.json
+
