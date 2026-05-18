@@ -1,7 +1,7 @@
 package com.example.sportmatch.data.api
 
-import com.example.sportmatch.data.model.VerifyFirebaseRequest
-import com.example.sportmatch.data.model.AuthResponse
+import com.example.sportmatch.data.dto.AuthResponse
+import com.example.sportmatch.data.dto.VerifyFirebaseRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
