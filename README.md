@@ -1,6 +1,6 @@
-# Dự án: SportMatch
+# Dự án: SPM - Bản đồ thể thao
 
-**SportMatch** là một ứng dụng di động giúp những người yêu thích thể thao dễ dàng tìm thấy nhau. Bạn có thể bật bản đồ để quét xem xung quanh mình có ai đang tìm người đá bóng, đánh cầu lông hay bóng chuyền không để "nhảy vào" chốt kèo và đi chơi ngay.
+**SPM** là một ứng dụng di động giúp những người yêu thích thể thao dễ dàng tìm thấy nhau. Bạn có thể bật bản đồ để quét xem xung quanh mình có ai đang tìm người đá bóng, đánh cầu lông hay bóng chuyền không để "nhảy vào" chốt kèo và đi chơi ngay.
 
 ---
 
@@ -35,10 +35,22 @@
 ### Android Project
 ```text
 com.example.sportmatch/
-├── data/               # Xử lý gọi API và định nghĩa dữ liệu (Model, Repository)
-├── ui/                 # Giao diện (Màn hình Login, OTP, Bản đồ, Chat)
-├── navigation/         # Quản lý luồng chuyển màn hình
-└── MainActivity.kt     # Điểm khởi chạy ứng dụng chính
+├── data/
+│   ├── api/
+│   ├── dto/
+│   ├── model/
+│   └── repository/
+│
+├── navigation/
+│
+├── ui/
+│   ├── auth/
+│   ├── map/
+│   ├── match/
+│   ├── message/
+│   └── profile/
+│
+└── MainActivity.kt
 ```
 
 ### Backend Project (.NET)
