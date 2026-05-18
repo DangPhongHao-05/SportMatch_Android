@@ -2,6 +2,7 @@
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
 using SportMatchAPI.Data;
+using SportMatchAPI.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +37,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         mySqlOptions => mySqlOptions.UseNetTopologySuite() // Cần thiết để tính khoảng cách sân bóng
     )
 );
+// Đăng ký dịch vụ tự động quét dọn kèo quá hạn chạy ngầm
+builder.Services.AddHostedService<MatchCleanupService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

@@ -14,4 +14,12 @@ object RetrofitClient {
             .build()
             .create(AuthApiService::class.java)
     }
+
+    val mapApi: MapApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(MapApiService::class.java)
+    }
 }
