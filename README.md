@@ -35,22 +35,22 @@
 ### Android Project
 ```text
 com.example.sportmatch/
-├── data/
-│   ├── api/
-│   ├── dto/
-│   ├── model/
-│   └── repository/
+├── data/                          # Xử lý dữ liệu và kết nối API
+│   ├── api/                       # Khai báo API Service, Retrofit
+│   ├── dto/                       # DTO dùng để gửi/nhận dữ liệu
+│   ├── model/                     # Model dữ liệu của ứng dụng
+│   └── repository/                # Trung gian xử lý dữ liệu giữa API và ViewModel
 │
-├── navigation/
+├── navigation/                    # Điều hướng giữa các màn hình
 │
-├── ui/
-│   ├── auth/
-│   ├── map/
-│   ├── match/
-│   ├── message/
-│   └── profile/
+├── ui/                            # Giao diện người dùng
+│   ├── auth/                      # Đăng nhập, xác thực người dùng
+│   ├── map/                       # Bản đồ, vị trí sân đấu
+│   ├── match/                     # Ghép trận, danh sách trận đấu
+│   ├── message/                   # Chat, nhắn tin giữa người chơi
+│   └── profile/                   # Hồ sơ cá nhân người dùng
 │
-└── MainActivity.kt
+└── MainActivity.kt                # Điểm khởi chạy chính của ứng dụng
 ```
 
 ### Backend Project (.NET)
