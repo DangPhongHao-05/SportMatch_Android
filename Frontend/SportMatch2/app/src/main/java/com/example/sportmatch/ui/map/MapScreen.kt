@@ -178,7 +178,7 @@ fun MapScreen(
                     .padding(top = 48.dp, start = 12.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 🔙 NÚT QUAY LẠI MÀN HÌNH TRƯỚC
+                // NÚT QUAY LẠI MÀN HÌNH TRƯỚC
                 IconButton(
                     onClick = { onNavigateToBack() },
                     colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White),
@@ -471,7 +471,7 @@ fun MapScreen(
                                 onClick = {
                                     val startLoc = selectedCustomLatLng ?: currentLatLng
                                     // gọi qua bản đồ bên gg map
-                                    val uriStr = "http://maps.google.com/maps?saddr=$\${startLoc.latitude},${startLoc.longitude}&daddr=${matchData.latitude},${matchData.longitude}"
+                                    val uriStr = "http://maps.google.com/maps?saddr=${startLoc.latitude},${startLoc.longitude}&daddr=${matchData.latitude},${matchData.longitude}"
 
                                     val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uriStr)).apply {
                                         setPackage("com.google.android.apps.maps")

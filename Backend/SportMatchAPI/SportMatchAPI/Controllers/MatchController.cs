@@ -128,5 +128,43 @@ namespace SportMatchAPI.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống server: " + ex.Message });
             }
         }
+
+        // Xin vao team
+        [HttpPost("apply")]
+        public async Task<IActionResult> ApplyForMatch([FromBody] ApplyMatchDTO dto)
+        {
+            try
+            {
+                // 1. Kiểm tra chống Spam (Người dùng đã gửi đơn vào trận này chưa?)
+                var existingApply = await _context.Matchinteractions
+                    .FirstOrDefaultAsync(i => i.MatchRequestId == dto.MatchRequestId && i.UserId == dto.UserId);
+
+                if (existingApply != null)
+                {
+                    return BadRequest(new { message = "Bạn đã gửi đơn xin vào trận này rồi, không được spam!" });
+                }
+
+                // 2. Tạo bản ghi Interaction mới
+                var newInteraction = new Matchinteraction
+                {
+                    MatchRequestId = dto.MatchRequestId,
+                    UserId = dto.UserId,
+                    InteractionType = "Apply", // Chủ động xin vào
+                    Message = dto.Message,
+                    Status = "Pending",        // Chờ chủ sân duyệt
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Matchinteractions.Add(newInteraction);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Đã gửi yêu cầu xin vào đội thành công! Chờ chủ sân duyệt nhé." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống server: " + ex.Message });
+            }
+        }
+
     }
 }
