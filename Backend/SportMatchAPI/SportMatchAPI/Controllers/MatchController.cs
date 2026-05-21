@@ -4,6 +4,9 @@ using NetTopologySuite.Geometries;
 using SportMatchAPI.Data;
 using SportMatchAPI.DTO;
 using SportMatchAPI.Models;
+using FirebaseAdmin.Messaging;
+using FcmMessage = FirebaseAdmin.Messaging.Message;
+using FcmNotification = FirebaseAdmin.Messaging.Notification;
 
 namespace SportMatchAPI.Controllers
 {
@@ -129,7 +132,7 @@ namespace SportMatchAPI.Controllers
             }
         }
 
-        // Xin vao team
+        // gửi yêu cầu tham gia
         [HttpPost("apply")]
         public async Task<IActionResult> ApplyForMatch([FromBody] ApplyMatchDTO dto)
         {
@@ -141,7 +144,13 @@ namespace SportMatchAPI.Controllers
 
                 if (existingApply != null)
                 {
-                    return BadRequest(new { message = "Bạn đã gửi đơn xin vào trận này rồi, không được spam!" });
+                    return BadRequest(new { success = false, message = "Bạn đã gửi đơn xin vào trận này rồi!" });
+                }
+                // chặn xin tham gia vào yêu cầu tìm kiếm đồng đội của mình tạo
+                var targetMatch = await _context.Matchrequests.FindAsync(dto.MatchRequestId);
+                if (targetMatch != null && targetMatch.HostId == dto.UserId)
+                {
+                    return BadRequest(new { success = false, message = "Bạn không thể tự xin tham gia vào yêu cầu do chính mình tạo!" });
                 }
 
                 // 2. Tạo bản ghi Interaction mới
@@ -149,16 +158,198 @@ namespace SportMatchAPI.Controllers
                 {
                     MatchRequestId = dto.MatchRequestId,
                     UserId = dto.UserId,
-                    InteractionType = "Apply", // Chủ động xin vào
+                    InteractionType = "Apply",
                     Message = dto.Message,
-                    Status = "Pending",        // Chờ chủ sân duyệt
+                    Status = "Pending",
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.Matchinteractions.Add(newInteraction);
                 await _context.SaveChangesAsync();
 
-                return Ok(new { message = "Đã gửi yêu cầu xin vào đội thành công! Chờ chủ sân duyệt nhé." });
+
+                // --- BẮN THÔNG BÁO ---
+                var host = await _context.Users.FindAsync(targetMatch.HostId);
+                if (!string.IsNullOrEmpty(host?.FcmToken))
+                {
+                    // Dùng bí danh FcmMessage
+                    var message = new FcmMessage()
+                    {
+                        Token = host.FcmToken,
+                        Notification = new FcmNotification() // Dùng bí danh FcmNotification
+                        {
+                            Title = "Có người xin tham gia!",
+                            Body = $"Bạn có một yêu cầu mới từ {await _context.Users.Where(u => u.Id == dto.UserId).Select(u => u.FullName).FirstOrDefaultAsync()}"
+                        }
+                    };
+                    await FirebaseMessaging.DefaultInstance.SendAsync(message);
+                }
+
+                return Ok(new { success = true, message = "Đã gửi yêu cầu xin vào đội thành công! Chờ chủ sân duyệt nhé." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống server: " + ex.Message });
+            }
+        }
+
+        // duyệt yêu cầu
+        [HttpPatch("respond")]
+        public async Task<IActionResult> RespondToApply([FromBody] RespondRequestDTO dto)
+        {
+            try
+            {
+                // 1. Tìm đơn xin tham gia trong DB (Kèm theo thông tin trận đấu gốc)
+                var interaction = await _context.Matchinteractions
+                    .Include(i => i.MatchRequest) // Load bảng MatchRequests để lấy thông tin số người
+                    .FirstOrDefaultAsync(i => i.Id == dto.InteractionId);
+
+                if (interaction == null)
+                {
+                    return NotFound(new { message = "Không tìm thấy yêu cầu này!" });
+                }
+
+                // Chặn việc spam duyệt 1 đơn nhiều lần
+                if (interaction.Status != "Pending")
+                {
+                    return BadRequest(new { message = "Yêu cầu này đã được xử lý trước đó rồi!" });
+                }
+
+                // 2. Xử lý logic theo lựa chọn của Chủ sân
+                if (dto.IsAccepted)
+                {
+                    // Đổi trạng thái đơn thành Chấp nhận
+                    interaction.Status = "Accepted";
+
+                    // Trừ số lượng người thiếu ở trận đấu đi 1
+                    if (interaction.MatchRequest != null && interaction.MatchRequest.MissingPlayers > 0)
+                    {
+                        interaction.MatchRequest.MissingPlayers -= 1;
+
+                        // Nếu trừ xong mà đủ người (MissingPlayers = 0) thì tự động đóng trận đấu
+                        if (interaction.MatchRequest.MissingPlayers == 0)
+                        {
+                            interaction.MatchRequest.Status = "Full"; // Trận đấu đã đầy
+                        }
+                    }
+                }
+                else
+                {
+                    // Chủ sân chọn Từ chối
+                    interaction.Status = "Rejected";
+                }
+
+                // 3. Lưu tất cả thay đổi xuống DB cùng một lúc
+                await _context.SaveChangesAsync();
+
+                // --- BẮN THÔNG BÁO CHO NGƯỜI XIN ---
+                var sender = await _context.Users.FindAsync(interaction.UserId);
+                if (!string.IsNullOrEmpty(sender?.FcmToken))
+                {
+                    // Dùng bí danh FcmMessage
+                    var message = new FcmMessage()
+                    {
+                        Token = sender.FcmToken,
+                        Notification = new FcmNotification() // Dùng bí danh FcmNotification
+                        {
+                            Title = "Kết quả duyệt kèo",
+                            Body = dto.IsAccepted ? "Yêu cầu vào đội đã được CHẤP NHẬN!" : "Rất tiếc, yêu cầu vào đội đã bị TỪ CHỐI."
+                        }
+                    };
+                    await FirebaseMessaging.DefaultInstance.SendAsync(message);
+                }
+
+                string resultMsg = dto.IsAccepted ? "Đã CHẤP NHẬN cho người này vào đội!" : "Đã TỪ CHỐI yêu cầu.";
+                return Ok(new { success = true, message = resultMsg });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống server: " + ex.Message });
+            }
+        }
+
+        //  API LẤY DANH SÁCH THÔNG BÁO CHỜ DUYỆT
+        [HttpGet("notifications/{hostId}")]
+        public async Task<IActionResult> GetNotifications(int hostId)
+        {
+            try
+            {
+                // Tìm các đơn tương tác đang 'Pending' thuộc về những trận đấu do hostId này tạo ra
+                var pendingRequests = await _context.Matchinteractions
+                    .Include(i => i.MatchRequest)
+                    .Include(i => i.User) // Để lấy thông tin người gửi đơn
+                    .Where(i => i.MatchRequest.HostId == hostId && i.Status == "Pending")
+                    .OrderByDescending(i => i.CreatedAt) // Đơn mới nhất lên đầu
+                    .Select(i => new
+                    {
+                        Id = i.Id,
+                        MatchRequestId = i.MatchRequestId,
+                        UserId = i.UserId,
+                        SenderName = i.User.FullName,         // Ánh xạ vào senderName bên Android
+                        SportType = i.MatchRequest.SportType,   // Ánh xạ vào sportType bên Android
+                        Message = i.Message,
+                        Status = i.Status,
+                        CreatedAt = i.CreatedAt.Value.ToString("yyyy-MM-ddTHH:mm:ss") // Chuẩn ISO cho Android dễ parse
+                    })
+                    .ToListAsync();
+
+                return Ok(pendingRequests);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống server: " + ex.Message });
+            }
+        }
+
+        // API LẤY DANH SÁCH ĐƠN MÌNH ĐÃ GỬI XIN THAM GIA
+        [HttpGet("my-requests/{userId}")]
+        public async Task<IActionResult> GetMyRequests(int userId)
+        {
+            try
+            {
+                var myRequests = await _context.Matchinteractions
+                    .Include(i => i.MatchRequest)
+                    .ThenInclude(m => m.Host) // Kéo theo bảng User để lấy tên Chủ sân
+                    .Where(i => i.UserId == userId && i.InteractionType == "Apply")
+                    .OrderByDescending(i => i.CreatedAt)
+                    .Select(i => new
+                    {
+                        Id = i.Id,
+                        MatchRequestId = i.MatchRequestId,
+                        HostName = i.MatchRequest.Host.FullName, // Tên chủ sân để hiển thị
+                        SportType = i.MatchRequest.SportType,
+                        Message = i.Message,
+                        Status = i.Status, // Pending, Accepted, hoặc Rejected
+                        CreatedAt = i.CreatedAt.Value.ToString("yyyy-MM-ddTHH:mm:ss")
+                    })
+                    .ToListAsync();
+
+                return Ok(myRequests);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống server: " + ex.Message });
+            }
+        }
+
+        [HttpDelete("cancel-request/{interactionId}")]
+        public async Task<IActionResult> CancelRequest(int interactionId)
+        {
+            try
+            {
+                var interaction = await _context.Matchinteractions.FindAsync(interactionId);
+                if (interaction == null) return NotFound(new { message = "Không tìm thấy yêu cầu này!" });
+
+                // Chỉ cho phép hủy nếu chủ sân chưa duyệt
+                if (interaction.Status != "Pending")
+                {
+                    return BadRequest(new { message = "Không thể hủy vì chủ sân đã xử lý yêu cầu này rồi!" });
+                }
+
+                _context.Matchinteractions.Remove(interaction);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Đã hủy yêu cầu tham gia thành công." });
             }
             catch (Exception ex)
             {

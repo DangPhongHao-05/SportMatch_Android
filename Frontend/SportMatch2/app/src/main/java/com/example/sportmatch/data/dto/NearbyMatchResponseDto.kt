@@ -1,7 +1,6 @@
-package com.example.sportmatch.data.model
+package com.example.sportmatch.data.dto
 
-// Model dùng để hứng dữ liệu danh sách trận đấu thật từ Backend .NET trả về
-data class NearbyMatchResponse(
+data class NearbyMatchResponseDto(
     val id: Int,
     val hostId: Int,
     val hostName: String,

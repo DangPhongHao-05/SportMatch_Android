@@ -65,6 +65,8 @@ dependencies {
     // Thư viện hỗ trợ xin quyền trong Jetpack Compose
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     implementation("androidx.compose.material:material-icons-extended")
+    // Thông báo đẩy
+    implementation("com.google.firebase:firebase-messaging-ktx")
     implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

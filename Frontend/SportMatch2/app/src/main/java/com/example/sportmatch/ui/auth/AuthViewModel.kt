@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.tasks.await
 
 enum class LoginState {
     PHONE_INPUT,
@@ -144,6 +146,9 @@ class AuthViewModel : ViewModel() {
                     userId = user.id
                     userFullName = user.fullName
 
+                    // Gửi token fcm
+                    sendTokenToServer(userId)
+
                     Log.d("AUTH_SUCCESS", "Chào mừng $userFullName, ID của bạn là $userId")
 
                     delay(500)
@@ -164,5 +169,25 @@ class AuthViewModel : ViewModel() {
 
     fun resetToPhoneState() {
         _uiState.value = LoginState.PHONE_INPUT
+    }
+
+    private fun sendTokenToServer(currentUserId: Int) {
+        viewModelScope.launch {
+            try {
+                // Lấy token từ Firebase
+                val fcmToken = FirebaseMessaging.getInstance().token.await()
+
+                // Gọi repository để cập nhật lên server
+                val success = authRepository.updateFcmToken(currentUserId, fcmToken)
+
+                if (success) {
+                    Log.d("FCM_FLOW", "Đã gửi Token lên Server thành công cho User ID: $currentUserId")
+                } else {
+                    Log.e("FCM_FLOW", "Cập nhật Token thất bại tại Server")
+                }
+            } catch (e: Exception) {
+                Log.e("FCM_FLOW", "Lỗi lấy Token từ Firebase: ${e.message}")
+            }
+        }
     }
 }

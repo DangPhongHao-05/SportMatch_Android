@@ -4,16 +4,16 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sportmatch.data.model.NearbyMatchResponse
 import com.example.sportmatch.data.repository.MapRepository
 import kotlinx.coroutines.launch
 import com.example.sportmatch.data.dto.CreateMatchDto
+import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 
 class MapViewModel : ViewModel() {
     private val repository = MapRepository()
 
     // Danh sách "kèo" thật sẽ được Compose quan sát để vẽ lên Map
-    val nearbyMatches = mutableStateListOf<NearbyMatchResponse>()
+    val nearbyMatches = mutableStateListOf<NearbyMatchResponseDto>()
 
     fun fetchNearbyMatches(lat: Double, lng: Double, radiusInKm: Double = 5.0) {
         viewModelScope.launch {
@@ -49,6 +49,43 @@ class MapViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e("MAP_DATA_ERROR", "Lỗi kết nối mạng khi tạo trận: ${e.message}")
+            }
+        }
+    }
+
+    // HÀM GỬI YÊU CẦU XIN THAM GIA
+    fun sendApplyRequest(matchId: Int, currentUserId: Int, message: String, onResult: (String, Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // 1. Đóng gói dữ liệu vào DTO
+                val dto = com.example.sportmatch.data.dto.ApplyMatchDto(
+                    matchRequestId = matchId,
+                    userId = currentUserId,
+                    message = message
+                )
+
+                // 2. Gọi qua tầng Repository của bạn
+                val response = repository.applyForMatch(dto)
+
+                if (response.isSuccessful && response.body() != null) {
+                    // Crả về mã 200 OK thành công
+                    onResult(response.body()!!.message, true)
+                } else {
+                    // trả về mã 400 BadRequest (Chống Spam)
+                    val errorJson = response.errorBody()?.string()
+                    val errorResponse = try {
+                        com.google.gson.Gson().fromJson(
+                            errorJson,
+                            com.example.sportmatch.data.dto.BaseResponseDto::class.java
+                        )
+                    } catch (e: Exception) { null }
+
+                    val finalMsg = errorResponse?.message ?: "Bạn đã gửi đơn xin vào trận này rồi, không được spam!"
+                    onResult(finalMsg, false)
+                }
+            } catch (e: Exception) {
+                Log.e("MAP_DATA_ERROR", "Lỗi mạng khi gửi yêu cầu tham gia: ${e.message}")
+                onResult("Lỗi kết nối Server!", false)
             }
         }
     }

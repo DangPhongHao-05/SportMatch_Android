@@ -38,12 +38,13 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.setValue
-import com.example.sportmatch.data.model.NearbyMatchResponse
+import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun MapScreen(
+    currentUserId: Int,
     onNavigateToBack: () -> Unit,
     onNavigateToChat: (receiverId: Int) -> Unit,
     viewModel: MapViewModel = viewModel()
@@ -68,14 +69,16 @@ fun MapScreen(
 
     // Trạng thái Giao diện nâng cao
     var searchQuery by remember { mutableStateOf("") }
-    var selectedMatchDetail by remember { mutableStateOf<NearbyMatchResponse?>(null) }
+    var selectedMatchDetail by remember { mutableStateOf<NearbyMatchResponseDto?>(null) }
 
-    // Trạng thái Form Đăng kèo BottomSheet
+    // Trạng thái Form Đăng tìm đội BottomSheet
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sportType by remember { mutableStateOf("") }
     var missingPlayers by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var showApplyDialog by remember { mutableStateOf(false) }
+    var applyMessage by remember { mutableStateOf("") }
 
     // TỰ ĐỘNG KHỞI TẠO & FORMAT NGÀY GIỜ HIỆN TẠI CHUẨN XÁC
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
@@ -420,6 +423,39 @@ fun MapScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
+                            // NÚT XIN THAM GIA ĐỘI
+                            if (matchData.hostId == currentUserId) {
+                                // Nếu mình là chủ kèo: Hiện nút xám cảnh báo, khóa Click
+                                Button(
+                                    onClick = { /* Không làm gì cả */ },
+                                    enabled = false, // Vô hiệu hóa nút bấm
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        disabledContainerColor = Color(0xFFCCCCCC),
+                                        disabledContentColor = Color.Gray
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = "Owner", tint = Color.Gray)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Kèo này do bạn tạo", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                // Nếu là kèo của người khác: Hiện nút xanh cho bấm bình thường
+                                Button(
+                                    onClick = { showApplyDialog = true },
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                                ) {
+                                    Icon(Icons.Default.PanTool, contentDescription = "Apply", tint = Color.White)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Xin tham gia trận này", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             // --- PHẦN 3: CỤM NÚT CHỨC NĂNG PHỤ (GỌI ĐIỆN & LIÊN HỆ CHAT) ---
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -618,7 +654,7 @@ fun MapScreen(
                                 val targetLoc = selectedCustomLatLng ?: currentLatLng
 
                                 val newMatchDto = CreateMatchDto(
-                                    hostId = 1,
+                                    hostId = currentUserId,
                                     sportType = sportType,
                                     requestType = "FindPlayer",
                                     missingPlayers = missingPlayers.toIntOrNull() ?: 1,
@@ -651,6 +687,61 @@ fun MapScreen(
                         }
                     }
                 }
+            }
+
+            // POP-UP NHẬP LỜI NHẮN XIN THAM GIA
+            if (showApplyDialog && selectedMatchDetail != null) {
+                AlertDialog(
+                    onDismissRequest = { showApplyDialog = false },
+                    title = { Text(text = "Xin tham gia đội", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text("Gửi lời nhắn để chủ sân duyệt bạn vào đá chung nhé!", color = Color.Gray, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = applyMessage,
+                                onValueChange = { applyMessage = it },
+                                placeholder = { Text("VD: Mình bắt gôn cực dính, cho 1 slot nha!") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                selectedMatchDetail?.let { matchData ->
+                                    // Gọi hàm xử lý trong MapViewModel
+                                    viewModel.sendApplyRequest(
+                                        matchId = matchData.id,
+                                        currentUserId = currentUserId,
+                                        message = applyMessage
+                                    ) { serverMessage, isSuccess ->
+                                        // Bắn Toast hiển thị câu trả lời từ C# trả về (Thành công hoặc Chống Spam)
+                                        Toast.makeText(context, serverMessage, Toast.LENGTH_LONG).show()
+
+                                        if (isSuccess) {
+                                            // Nếu gửi thành công: dọn dẹp biến tạm và đóng pop-up
+                                            showApplyDialog = false
+                                            applyMessage = ""
+                                            selectedMatchDetail = null // Tự động đóng luôn cả thanh thông tin dưới đáy
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                        ) {
+                            Text("Gửi lời đề nghị")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showApplyDialog = false }) {
+                            Text("Hủy", color = Color.Gray)
+                        }
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = Color.White
+                )
             }
 
         }

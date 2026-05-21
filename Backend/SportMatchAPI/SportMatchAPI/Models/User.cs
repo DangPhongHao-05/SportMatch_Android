@@ -21,6 +21,8 @@ public partial class User
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string? FcmToken { get; set; }
+
     public virtual ICollection<Matchinteraction> Matchinteractions { get; set; } = new List<Matchinteraction>();
 
     public virtual ICollection<Matchrequest> Matchrequests { get; set; } = new List<Matchrequest>();
