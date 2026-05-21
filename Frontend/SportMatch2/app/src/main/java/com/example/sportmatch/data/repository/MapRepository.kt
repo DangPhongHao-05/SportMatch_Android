@@ -11,8 +11,8 @@ import retrofit2.Response
 class MapRepository {
     private val apiService = RetrofitClient.mapApi
 
-    suspend fun getNearbyMatches(lat: Double, lng: Double, radius: Double): Response<List<NearbyMatchResponseDto>> {
-        return apiService.getNearbyMatches(LocationQueryDto(lat, lng, radius))
+    suspend fun getNearbyMatches(lat: Double, lng: Double, radius: Double, sportType: String?, filterDate: String?): Response<List<NearbyMatchResponseDto>> {
+        return apiService.getNearbyMatches(LocationQueryDto(lat, lng, radius, sportType, filterDate))
     }
 
     suspend fun createMatch(matchData: CreateMatchDto): Response<Unit> {

@@ -29,20 +29,36 @@ namespace SportMatchAPI.Controllers
         {
             try
             {
-                // 1. Tạo điểm tìm kiếm: Thống nhất trục (X = Longitude, Y = Latitude) của NetTopologySuite
+                // 1. Tạo điểm tìm kiếm hệ WGS84
                 var userLocation = _geometryFactory.CreatePoint(new Coordinate(query.Longitude, query.Latitude));
-
-                // Quy đổi bán kính từ Km sang Mét
                 double radiusInMeters = query.RadiusInKm * 1000;
 
-                // Chuẩn hóa thời gian hiện tại theo múi giờ Việt Nam (GMT+7)
                 var utcNow = DateTime.UtcNow;
                 var currentTime = TimeZoneInfo.ConvertTimeFromUtc(utcNow, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
 
-                // 2. Lấy danh sách các trận đang Open từ DB lên RAM trước để tránh EF Core dịch sai hàm Distance
-                var allOpenMatches = await _context.Matchrequests
+                // Khởi tạo câu lệnh query cơ bản từ DB (chưa thực thi lệnh tải về RAM)
+                var matchQuery = _context.Matchrequests
                     .Include(m => m.Host)
-                    .Where(m => m.Status == "Open" && m.EndTime > currentTime)
+                    .Where(m => m.Status == "Open" && m.EndTime > currentTime);
+
+                // Lọc theo môn thể thao
+                if (!string.IsNullOrWhiteSpace(query.SportType))
+                {
+                    string searchKeyword = query.SportType.Trim().ToLower();
+                    matchQuery = matchQuery.Where(m => m.SportType.ToLower().Contains(searchKeyword));
+                }
+
+                // lọc thời gian
+                if (!string.IsNullOrWhiteSpace(query.FilterDate) && DateTime.TryParse(query.FilterDate, out DateTime selectedDate))
+                {
+                    // Lấy ra ngày chọn (bỏ qua giờ phút giây)
+                    var targetDate = selectedDate.Date;
+                    // lớn hơn ngày bắt đầu & nhỏ hơn ngày kết thúc
+                    matchQuery = matchQuery.Where(m => m.StartTime.Date <= targetDate && m.EndTime.Date >= targetDate);
+                }
+
+                // 2. Sau khi áp các bộ lọc, tiến hành lấy danh sách lên RAM
+                var allOpenMatches = await matchQuery
                     .Select(m => new
                     {
                         m.Id,
@@ -55,16 +71,14 @@ namespace SportMatchAPI.Controllers
                         m.Description,
                         m.StartTime,
                         m.EndTime,
-                        m.Location // Lấy đối tượng hình học gốc lên để C# tính toán
+                        m.Location
                     })
                     .ToListAsync();
 
                 // 3. Sử dụng C# để tính toán khoảng cách chuẩn xác trên RAM
                 var nearbyMatches = allOpenMatches
                     .Select(m => {
-                        // Tính khoảng cách phẳng (Độ hình học) giữa 2 điểm trên RAM
                         double distanceInDegrees = m.Location.Distance(userLocation);
-                        // Quy đổi ra mét chuẩn
                         double distanceInMeters = Math.Round(distanceInDegrees * 111000);
 
                         return new
@@ -79,18 +93,14 @@ namespace SportMatchAPI.Controllers
                             m.Description,
                             m.StartTime,
                             m.EndTime,
-
-                            // Trả dữ liệu về đúng trục cho Android nhận diện
-                            Latitude = m.Location.Y,  
+                            Latitude = m.Location.Y,
                             Longitude = m.Location.X,
                             DistanceInMeters = distanceInMeters
                         };
                     })
-                    // LỌC CHÍNH XÁC THEO BÁN KÍNH MÉT TẠI ĐÂY
                     .Where(m => m.DistanceInMeters <= radiusInMeters)
                     .ToList();
 
-                // Trả kết quả về dạng Ok Object chuẩn IActionResult
                 return Ok(nearbyMatches);
             }
             catch (Exception ex)
@@ -185,7 +195,7 @@ namespace SportMatchAPI.Controllers
                     await FirebaseMessaging.DefaultInstance.SendAsync(message);
                 }
 
-                return Ok(new { success = true, message = "Đã gửi yêu cầu xin vào đội thành công! Chờ chủ sân duyệt nhé." });
+                return Ok(new { success = true, message = "Đã gửi yêu cầu xin vào đội thành công!" });
             }
             catch (Exception ex)
             {
@@ -253,13 +263,13 @@ namespace SportMatchAPI.Controllers
                         Notification = new FcmNotification() // Dùng bí danh FcmNotification
                         {
                             Title = "Kết quả duyệt kèo",
-                            Body = dto.IsAccepted ? "Yêu cầu vào đội đã được CHẤP NHẬN!" : "Rất tiếc, yêu cầu vào đội đã bị TỪ CHỐI."
+                            Body = dto.IsAccepted ? "Yêu cầu vào đội đã được chấp nhận!" : "Rất tiếc, yêu cầu vào đội đã bị từ chối."
                         }
                     };
                     await FirebaseMessaging.DefaultInstance.SendAsync(message);
                 }
 
-                string resultMsg = dto.IsAccepted ? "Đã CHẤP NHẬN cho người này vào đội!" : "Đã TỪ CHỐI yêu cầu.";
+                string resultMsg = dto.IsAccepted ? "Đã chấp nhận cho người này vào đội!" : "Đã từ chối yêu cầu.";
                 return Ok(new { success = true, message = resultMsg });
             }
             catch (Exception ex)
@@ -285,11 +295,11 @@ namespace SportMatchAPI.Controllers
                         Id = i.Id,
                         MatchRequestId = i.MatchRequestId,
                         UserId = i.UserId,
-                        SenderName = i.User.FullName,         // Ánh xạ vào senderName bên Android
-                        SportType = i.MatchRequest.SportType,   // Ánh xạ vào sportType bên Android
+                        SenderName = i.User.FullName,      
+                        SportType = i.MatchRequest.SportType, 
                         Message = i.Message,
                         Status = i.Status,
-                        CreatedAt = i.CreatedAt.Value.ToString("yyyy-MM-ddTHH:mm:ss") // Chuẩn ISO cho Android dễ parse
+                        CreatedAt = i.CreatedAt.Value.ToString("yyyy-MM-ddTHH:mm:ss") 
                     })
                     .ToListAsync();
 
@@ -309,14 +319,14 @@ namespace SportMatchAPI.Controllers
             {
                 var myRequests = await _context.Matchinteractions
                     .Include(i => i.MatchRequest)
-                    .ThenInclude(m => m.Host) // Kéo theo bảng User để lấy tên Chủ sân
+                    .ThenInclude(m => m.Host) // Kéo theo bảng User để lấy tên Người tổ chức
                     .Where(i => i.UserId == userId && i.InteractionType == "Apply")
                     .OrderByDescending(i => i.CreatedAt)
                     .Select(i => new
                     {
                         Id = i.Id,
                         MatchRequestId = i.MatchRequestId,
-                        HostName = i.MatchRequest.Host.FullName, // Tên chủ sân để hiển thị
+                        HostName = i.MatchRequest.Host.FullName, // Tên Người tổ chức để hiển thị
                         SportType = i.MatchRequest.SportType,
                         Message = i.Message,
                         Status = i.Status, // Pending, Accepted, hoặc Rejected
@@ -340,7 +350,7 @@ namespace SportMatchAPI.Controllers
                 var interaction = await _context.Matchinteractions.FindAsync(interactionId);
                 if (interaction == null) return NotFound(new { message = "Không tìm thấy yêu cầu này!" });
 
-                // Chỉ cho phép hủy nếu chủ sân chưa duyệt
+                // Chỉ cho phép hủy nếu chưa duyệt
                 if (interaction.Status != "Pending")
                 {
                     return BadRequest(new { message = "Không thể hủy vì chủ sân đã xử lý yêu cầu này rồi!" });
