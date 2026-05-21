@@ -9,6 +9,7 @@ import com.example.sportmatch.ui.auth.AuthViewModel
 import com.example.sportmatch.ui.auth.LoginScreen
 import com.example.sportmatch.ui.match.HomeScreen
 import com.example.sportmatch.ui.match.MapScreen
+import com.example.sportmatch.ui.notification.NotificationScreen
 
 @Composable
 fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
@@ -37,13 +38,15 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 userName = authViewModel.userFullName,
                 onNavigateToMap = { navController.navigate(Screen.Map.route) },
                 onNavigateToMessages = { navController.navigate(Screen.Messages.route) },
-                onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
+                onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
+                onNavigateToNotifications = { navController.navigate(Screen.Notification.route) }
             )
         }
 
         // 3. Màn hình Bản đồ (Map)
         composable(Screen.Map.route) {
             MapScreen(
+                currentUserId = authViewModel.userId,
                 onNavigateToBack = { navController.popBackStack() },
                 onNavigateToChat = { hostId ->
                     // Luồng chat xử lý sau
@@ -59,6 +62,14 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         // 5. Màn hình Hồ sơ (Profile)
         composable(Screen.Profile.route) {
             // Gọi màn hình thông tin cá nhân ở đây
+        }
+
+        // 6. Màn hình Thông báo (Notification)
+        composable(Screen.Notification.route) {
+            NotificationScreen(
+                currentUserId = authViewModel.userId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

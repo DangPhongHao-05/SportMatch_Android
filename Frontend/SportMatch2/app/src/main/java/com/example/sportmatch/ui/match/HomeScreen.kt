@@ -27,7 +27,8 @@ fun HomeScreen(
     userName: String,
     onNavigateToMap: () -> Unit,
     onNavigateToMessages: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToNotifications: () -> Unit
 ) {
     // HIỆU ỨNG SÓNG LAN TỎA (PULSE GLOW) CHO NÚT ĐỊNH VỊ
     val infiniteTransition = rememberInfiniteTransition(label = "GlowTransition")
@@ -94,9 +95,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.weight(1.2f))
 
                     // Nút Thông báo
-                    IconButton(onClick = { }, modifier = Modifier.weight(1f)) {
+                    IconButton(onClick = onNavigateToNotifications, modifier = Modifier.weight(1f)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Alerts", tint = Color.Gray)
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.Gray)
                             Text("Thông báo", fontSize = 10.sp, color = Color.Gray)
                         }
                     }

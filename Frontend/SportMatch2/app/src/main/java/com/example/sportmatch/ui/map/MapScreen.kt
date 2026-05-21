@@ -38,12 +38,13 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.setValue
-import com.example.sportmatch.data.model.NearbyMatchResponse
+import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun MapScreen(
+    currentUserId: Int,
     onNavigateToBack: () -> Unit,
     onNavigateToChat: (receiverId: Int) -> Unit,
     viewModel: MapViewModel = viewModel()
@@ -66,16 +67,21 @@ fun MapScreen(
         position = CameraPosition.fromLatLngZoom(currentLatLng, 14f)
     }
 
+    // ẩn hiện thanh lọc
+    var showFilterBar by remember { mutableStateOf(false) }
+
     // Trạng thái Giao diện nâng cao
     var searchQuery by remember { mutableStateOf("") }
-    var selectedMatchDetail by remember { mutableStateOf<NearbyMatchResponse?>(null) }
+    var selectedMatchDetail by remember { mutableStateOf<NearbyMatchResponseDto?>(null) }
 
-    // Trạng thái Form Đăng kèo BottomSheet
+    // Trạng thái Form Đăng tìm đội BottomSheet
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var sportType by remember { mutableStateOf("") }
     var missingPlayers by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var showApplyDialog by remember { mutableStateOf(false) }
+    var applyMessage by remember { mutableStateOf("") }
 
     // TỰ ĐỘNG KHỞI TẠO & FORMAT NGÀY GIỜ HIỆN TẠI CHUẨN XÁC
     val sdfDate = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
@@ -95,31 +101,33 @@ fun MapScreen(
                     if (selectedCustomLatLng == null) {
                         selectedCustomLatLng = userLocation
                     }
-                    if (!isCameraInitialized) {
-                        cameraPositionState.position = CameraPosition.fromLatLngZoom(userLocation, 14f)
-                        isCameraInitialized = true
-                    }
+//                    if (!isCameraInitialized) {
+//                        cameraPositionState.position = CameraPosition.fromLatLngZoom(userLocation, 14f)
+//                        isCameraInitialized = true
+//                    }
                 } else {
                     val defaultLoc = LatLng(13.7592, 109.2190)
                     currentLatLng = defaultLoc
                     if (selectedCustomLatLng == null) {
                         selectedCustomLatLng = defaultLoc
                     }
-                    if (!isCameraInitialized) {
-                        cameraPositionState.position = CameraPosition.fromLatLngZoom(defaultLoc, 14f)
-                        isCameraInitialized = true
-                    }
+//                    if (!isCameraInitialized) {
+//                        cameraPositionState.position = CameraPosition.fromLatLngZoom(defaultLoc, 14f)
+//                        isCameraInitialized = true
+//                    }
                 }
             }
         }
 
         // LUỒNG 2: Gọi API cập nhật danh sách ghim dựa vào điểm tự chọn quét được
-        LaunchedEffect(selectedCustomLatLng) {
+        LaunchedEffect(selectedCustomLatLng, viewModel.selectedSport, viewModel.selectedDate) {
             selectedCustomLatLng?.let { targetLoc ->
                 viewModel.fetchNearbyMatches(
                     lat = targetLoc.latitude,
                     lng = targetLoc.longitude,
-                    radiusInKm = 10.0
+                    radiusInKm = 10.0,
+                    sportType = viewModel.selectedSport,
+                    filterDate = viewModel.selectedDate
                 )
             }
         }
@@ -178,7 +186,7 @@ fun MapScreen(
                     .padding(top = 48.dp, start = 12.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 🔙 NÚT QUAY LẠI MÀN HÌNH TRƯỚC
+                // NÚT QUAY LẠI MÀN HÌNH TRƯỚC
                 IconButton(
                     onClick = { onNavigateToBack() },
                     colors = IconButtonDefaults.iconButtonColors(containerColor = Color.White),
@@ -189,7 +197,7 @@ fun MapScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                 }
 
-                // THANH TÌM KIẾM ĐỊA DANH HÌNH VIÊN THUỐC ĐẸP MẮT
+                // THANH TÌM KIẾM ĐỊA DANH
                 Card(
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(28.dp),
@@ -239,6 +247,76 @@ fun MapScreen(
                                 }
                             }) {
                                 Icon(Icons.Default.Check, contentDescription = "Go", tint = Color(0xFF4CAF50))
+                            }
+                        }
+                    }
+                }
+            }
+
+            // =================================================================
+            // ĐÂY LÀ CHỖ THÊM MỚI: HÀNG BỘ LỌC KIẾM KÈO (XUẤT HIỆN NGAY PHÍA DƯỚI)
+            // =================================================================
+            AnimatedVisibility(
+                visible = showFilterBar,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // padding top 110.dp để nó tự động nằm né bên dưới thanh search địa điểm của Hào, không bị đè lên nhau
+                    .padding(top = 110.dp, start = 56.dp, end = 12.dp)
+            ) {
+                // Hàng chứa cả Ô gõ môn thể thao và Nút chọn ngày gọn gàng
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Ô nhập môn thể thao nhỏ gọn nền trắng
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.SportsBasketball, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                            TextField(
+                                value = viewModel.selectedSport ?: "",
+                                onValueChange = { viewModel.selectedSport = if (it.isBlank()) null else it },
+                                placeholder = { Text("Lọc ghim môn: foot, cầu lông...", color = Color.Gray, fontSize = 13.sp) },
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            if (!viewModel.selectedSport.isNullOrBlank()) {
+                                IconButton(onClick = { viewModel.selectedSport = null }, modifier = Modifier.size(24.dp)) {
+                                    Icon(Icons.Default.Clear, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
+                    }
+
+                    // Nút bấm mở lịch chọn ngày lọc ghim
+                    val calendar = Calendar.getInstance()
+                    val datePickerDialog = DatePickerDialog(context, { _, year, month, dayOfMonth -> viewModel.selectedDate = String.format("%04d-%02d-%02d", year, month + 1, dayOfMonth) }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH))
+
+                    Button(
+                        onClick = { datePickerDialog.show() },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        elevation = ButtonDefaults.buttonElevation(4.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Icon(Icons.Default.DateRange, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(text = viewModel.selectedDate ?: "Tất cả các ngày", color = Color.Black, fontSize = 12.sp)
+                        if (viewModel.selectedDate != null) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(onClick = { viewModel.selectedDate = null }, modifier = Modifier.size(14.dp)) {
+                                Icon(Icons.Default.Clear, null, tint = Color.Gray, modifier = Modifier.size(10.dp))
                             }
                         }
                     }
@@ -420,6 +498,39 @@ fun MapScreen(
 
                             Spacer(modifier = Modifier.height(20.dp))
 
+                            // NÚT XIN THAM GIA ĐỘI
+                            if (matchData.hostId == currentUserId) {
+                                // Nếu mình là chủ kèo: Hiện nút xám cảnh báo, khóa Click
+                                Button(
+                                    onClick = { /* Không làm gì cả */ },
+                                    enabled = false, // Vô hiệu hóa nút bấm
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        disabledContainerColor = Color(0xFFCCCCCC),
+                                        disabledContentColor = Color.Gray
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Info, contentDescription = "Owner", tint = Color.Gray)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Kèo này do bạn tạo", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                // Nếu là kèo của người khác: Hiện nút xanh cho bấm bình thường
+                                Button(
+                                    onClick = { showApplyDialog = true },
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                                ) {
+                                    Icon(Icons.Default.PanTool, contentDescription = "Apply", tint = Color.White)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Xin tham gia trận này", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             // --- PHẦN 3: CỤM NÚT CHỨC NĂNG PHỤ (GỌI ĐIỆN & LIÊN HỆ CHAT) ---
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -471,7 +582,7 @@ fun MapScreen(
                                 onClick = {
                                     val startLoc = selectedCustomLatLng ?: currentLatLng
                                     // gọi qua bản đồ bên gg map
-                                    val uriStr = "http://maps.google.com/maps?saddr=$\${startLoc.latitude},${startLoc.longitude}&daddr=${matchData.latitude},${matchData.longitude}"
+                                    val uriStr = "http://maps.google.com/maps?saddr=${startLoc.latitude},${startLoc.longitude}&daddr=${matchData.latitude},${matchData.longitude}"
 
                                     val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse(uriStr)).apply {
                                         setPackage("com.google.android.apps.maps")
@@ -497,17 +608,38 @@ fun MapScreen(
                 }
             }
 
-            // NÚT CHÍNH ĐỂ MỞ FORM ĐĂNG TÌM ĐỘI (Góc dưới bên phải)
-            ExtendedFloatingActionButton(
-                onClick = { showBottomSheet = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = "Add") },
-                text = { Text(text = "Tìm đội") },
-                containerColor = Color(0xFF4CAF50),
-                contentColor = Color.White,
+            // CỤM 2 NÚT BẤM CHỨC NĂNG TÁCH BIỆT (GÓC DƯỚI BÊN PHẢI)
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 32.dp)
-            )
+                    .padding(end = 16.dp, bottom = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // NÚT LỆNH 1: KIẾM KÈO (Bật/Ẩn thanh lọc môn và ngày phía trên)
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        showFilterBar = !showFilterBar
+                        // Nếu chủ động đóng thanh lọc, xóa luôn bộ lọc để bản đồ trả về full ghim
+                        if (!showFilterBar) {
+                            viewModel.selectedSport = null
+                            viewModel.selectedDate = null
+                        }
+                    },
+                    icon = { Icon(if (showFilterBar) Icons.Default.Close else Icons.Default.Search, contentDescription = null) },
+                    text = { Text(text = if (showFilterBar) "Đóng lọc" else "Kiếm kèo") },
+                    containerColor = Color(0xFFFF9800), // Màu cam rực rỡ phân biệt bộ lọc
+                    contentColor = Color.White
+                )
+
+                // NÚT LỆNH 2: TÌM ĐỘI (Mở form Đăng tạo kèo mới ghim lên map)
+                ExtendedFloatingActionButton(
+                    onClick = { showBottomSheet = true },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    text = { Text(text = "Tìm đội") },
+                    containerColor = Color(0xFF4CAF50), // Màu xanh lá tạo kèo của Hào
+                    contentColor = Color.White
+                )
+            }
 
             // FORM BOTTOM SHEET ĐĂNG TÌM TEAM (Lấy vị trí tự chọn cắm ghim xanh làm tọa độ lưu DB)
             if (showBottomSheet) {
@@ -618,7 +750,7 @@ fun MapScreen(
                                 val targetLoc = selectedCustomLatLng ?: currentLatLng
 
                                 val newMatchDto = CreateMatchDto(
-                                    hostId = 1,
+                                    hostId = currentUserId,
                                     sportType = sportType,
                                     requestType = "FindPlayer",
                                     missingPlayers = missingPlayers.toIntOrNull() ?: 1,
@@ -651,6 +783,61 @@ fun MapScreen(
                         }
                     }
                 }
+            }
+
+            // POP-UP NHẬP LỜI NHẮN XIN THAM GIA
+            if (showApplyDialog && selectedMatchDetail != null) {
+                AlertDialog(
+                    onDismissRequest = { showApplyDialog = false },
+                    title = { Text(text = "Xin tham gia đội", fontWeight = FontWeight.Bold) },
+                    text = {
+                        Column {
+                            Text("Gửi lời nhắn để chủ sân duyệt bạn vào đá chung nhé!", color = Color.Gray, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = applyMessage,
+                                onValueChange = { applyMessage = it },
+                                placeholder = { Text("VD: Mình bắt gôn cực dính, cho 1 slot nha!") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                selectedMatchDetail?.let { matchData ->
+                                    // Gọi hàm xử lý trong MapViewModel
+                                    viewModel.sendApplyRequest(
+                                        matchId = matchData.id,
+                                        currentUserId = currentUserId,
+                                        message = applyMessage
+                                    ) { serverMessage, isSuccess ->
+                                        // Bắn Toast hiển thị câu trả lời từ C# trả về (Thành công hoặc Chống Spam)
+                                        Toast.makeText(context, serverMessage, Toast.LENGTH_LONG).show()
+
+                                        if (isSuccess) {
+                                            // Nếu gửi thành công: dọn dẹp biến tạm và đóng pop-up
+                                            showApplyDialog = false
+                                            applyMessage = ""
+                                            selectedMatchDetail = null // Tự động đóng luôn cả thanh thông tin dưới đáy
+                                        }
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+                        ) {
+                            Text("Gửi lời đề nghị")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showApplyDialog = false }) {
+                            Text("Hủy", color = Color.Gray)
+                        }
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = Color.White
+                )
             }
 
         }

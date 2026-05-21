@@ -144,5 +144,25 @@ namespace SportMatchAPI.Controllers
 
             return tokenHandler.WriteToken(token);
         }
+
+        [HttpPost("update-token")]
+        public async Task<IActionResult> UpdateFcmToken([FromBody] FcmTokenUpdateDTO dto)
+        {
+            try
+            {
+                // dto chứa UserId và Token từ Android gửi lên
+                var user = await _context.Users.FindAsync(dto.UserId);
+                if (user == null) return NotFound("Không tìm thấy người dùng.");
+
+                user.FcmToken = dto.Token; // Lưu token vào cột mới tạo
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, message = "Đã lưu Token thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Lỗi server: {ex.Message}");
+            }
+        }
     }
 }
