@@ -48,11 +48,15 @@ class AuthViewModel : ViewModel() {
     var phoneNumber by mutableStateOf("")
         private set
 
+    var userCreatedAt by mutableStateOf("")
+        private set
+
     private var storedVerificationId = ""
 
     // 1. Hàm gọi khi bấm "Gửi OTP"
     fun onPhoneSubmit(phone: String, activity: Activity) {
         _uiState.value = LoginState.LOADING
+        Log.d("AUTH_DEBUG", "Bắt đầu gọi hàm gửi OTP cho số: $phone")
 
         val cleanPhone = phone.replace(Regex("[^0-9+]"), "")
 
@@ -71,7 +75,7 @@ class AuthViewModel : ViewModel() {
             .setActivity(activity)
             .setCallbacks(callbacks)
             .build()
-
+        Log.d("AUTH_DEBUG", "chuyển Request sang Firebase...")
         PhoneAuthProvider.verifyPhoneNumber(options)
     }
 
@@ -79,6 +83,7 @@ class AuthViewModel : ViewModel() {
     private val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
             signInWithPhoneAuthCredential(credential)
+//            _uiState.value = LoginState.OTP_INPUT
         }
 
         override fun onVerificationFailed(e: FirebaseException) {
@@ -145,6 +150,8 @@ class AuthViewModel : ViewModel() {
 
                     userId = user.id
                     userFullName = user.fullName
+                    phoneNumber = data.user.phoneNumber
+                    userCreatedAt = data.user.createdAt ?: "Chưa xác định"
 
                     // Gửi token fcm
                     sendTokenToServer(userId)
@@ -189,5 +196,10 @@ class AuthViewModel : ViewModel() {
                 Log.e("FCM_FLOW", "Lỗi lấy Token từ Firebase: ${e.message}")
             }
         }
+    }
+
+    fun updateLocalUser(newName: String, newAvatar: String?) {
+        userFullName = newName
+        userAvatar = newAvatar
     }
 }

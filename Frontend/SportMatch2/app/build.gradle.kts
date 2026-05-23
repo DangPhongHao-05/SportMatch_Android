@@ -67,6 +67,8 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     // Thông báo đẩy
     implementation("com.google.firebase:firebase-messaging-ktx")
+    // Thư viện Firebase Storage
+    implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
     implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -75,4 +77,5 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

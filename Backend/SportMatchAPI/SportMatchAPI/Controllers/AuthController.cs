@@ -26,7 +26,7 @@ namespace SportMatchAPI.Controllers
         }
 
         [HttpPost("verify-phone")]
-        public async Task<IActionResult> VerifyPhoneAuth([FromBody] VerifyFirebaseRequest request)
+        public async Task<IActionResult> VerifyPhoneAuth([FromBody] VerifyFirebaseDTO request)
         {
             Console.WriteLine($"==> NHẬN ĐƯỢC REQUEST VỚI TOKEN: {request.IdToken.Substring(0, 10)}...");
             try
@@ -86,7 +86,8 @@ namespace SportMatchAPI.Controllers
                         user.Id,
                         user.PhoneNumber,
                         user.FullName,
-                        user.AvatarUrl
+                        user.AvatarUrl,
+                        CreatedAt = user.CreatedAt.HasValue ? user.CreatedAt.Value.ToString("dd/MM/yyyy") : "Chưa xác định"
                     }
                 });
             }
@@ -112,7 +113,7 @@ namespace SportMatchAPI.Controllers
         // ==========================================
         private string GenerateJwtToken(User user)
         {
-            // Đọc Key từ Secret Manager (Không bao giờ gán cứng ở đây)
+            // Đọc Key từ Secret Manager
             var secretKey = _configuration["Jwt:Key"];
 
             // Báo lỗi ngay lập tức nếu quên chưa nạp Key vào Server
