@@ -6,5 +6,6 @@ class UserDto (
     @SerializedName("id") val id: Int,
     @SerializedName("phoneNumber") val phoneNumber: String,
     @SerializedName("fullName") val fullName: String,
-    @SerializedName("avatarUrl") val avatarUrl: String?
+    @SerializedName("avatarUrl") val avatarUrl: String?,
+    @SerializedName("createdAt") val createdAt: String
 )
