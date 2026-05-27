@@ -10,6 +10,7 @@ import com.example.sportmatch.ui.auth.LoginScreen
 import com.example.sportmatch.ui.match.HomeScreen
 import com.example.sportmatch.ui.match.MapScreen
 import com.example.sportmatch.ui.notification.NotificationScreen
+import com.example.sportmatch.ui.profile.ProfileScreen
 
 @Composable
 fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
@@ -61,7 +62,26 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
 
         // 5. Màn hình Hồ sơ (Profile)
         composable(Screen.Profile.route) {
-            // Gọi màn hình thông tin cá nhân ở đây
+            ProfileScreen(
+                currentUserId = authViewModel.userId,
+                currentUserName = authViewModel.userFullName,
+                currentUserAvatar = authViewModel.userAvatar,
+                currentUserPhone = authViewModel.phoneNumber,
+                currentUserCreatedAt = authViewModel.userCreatedAt,
+                onUpdateSystemData = { newName, newAvatar ->
+                            // Cập nhật lại biến trên RAM của AuthViewModel để các màn hình khác (Home, Map) lập tức nhận diện tên mới
+                    authViewModel.updateLocalUser(newName, newAvatar) },
+                        onNavigateToBack = {
+                            navController.popBackStack()
+                        },
+                        onLogoutSuccess = {
+                            authViewModel.resetToPhoneState()
+                            // Dọn dẹp sạch sẽ lịch sử trang và ép văng người dùng về màn hình Login
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true } // popupTo(0) xóa sạch toàn bộ BackStack, chống bấm nút Back của điện thoại chui lại vào App
+                            }
+                        }
+            )
         }
 
         // 6. Màn hình Thông báo (Notification)
