@@ -31,8 +31,7 @@ class MainActivity : ComponentActivity() {
             SportMatchTheme {
                 // Scaffold tự động tính toán và chừa khoảng trống hệ thống cho toàn bộ các trang con
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    contentWindowInsets = WindowInsets.safeDrawing
+                    modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     Box(
                         modifier = Modifier
