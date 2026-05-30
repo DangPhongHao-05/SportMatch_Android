@@ -57,7 +57,8 @@ fun NotificationScreen(
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White),
+                    windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp)
                 )
                 // --- THANH CHUYỂN TAB ---
                 TabRow(

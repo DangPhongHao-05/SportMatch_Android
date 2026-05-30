@@ -183,7 +183,7 @@ fun MapScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, start = 12.dp, end = 12.dp),
+                    .padding(top = 24.dp, start = 12.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // NÚT QUAY LẠI MÀN HÌNH TRƯỚC
