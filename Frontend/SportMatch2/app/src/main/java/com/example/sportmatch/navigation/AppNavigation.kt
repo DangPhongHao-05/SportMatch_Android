@@ -2,13 +2,17 @@ package com.example.sportmatch.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.sportmatch.ui.auth.AuthViewModel
 import com.example.sportmatch.ui.auth.LoginScreen
 import com.example.sportmatch.ui.match.HomeScreen
 import com.example.sportmatch.ui.match.MapScreen
+import com.example.sportmatch.ui.message.ChatScreen
+import com.example.sportmatch.ui.message.MessageListScreen
 import com.example.sportmatch.ui.notification.NotificationScreen
 import com.example.sportmatch.ui.profile.ProfileScreen
 
@@ -49,15 +53,23 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
             MapScreen(
                 currentUserId = authViewModel.userId,
                 onNavigateToBack = { navController.popBackStack() },
-                onNavigateToChat = { hostId ->
-                    // Luồng chat xử lý sau
+                onNavigateToChat = { hostId, hostName ->
+                    navController.navigate(Screen.Chat.createRoute(hostId.toString(), hostName))
                 }
             )
         }
 
         // 4. Màn hình Tin nhắn (Messages)
         composable(Screen.Messages.route) {
-            // Gọi màn hình danh sách Chat ở đây
+            MessageListScreen(
+                currentUserId = authViewModel.userId.toString(),
+                onNavigateToChatDetail = { targetUserId, targetUserName ->
+                    navController.navigate(Screen.Chat.createRoute(targetUserId, targetUserName))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         // 5. Màn hình Hồ sơ (Profile)
@@ -88,6 +100,25 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         composable(Screen.Notification.route) {
             NotificationScreen(
                 currentUserId = authViewModel.userId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Trong AppNavigation.kt
+        composable(
+            route = "chat_screen/{targetUserId}/{targetUserName}",
+            arguments = listOf(
+                navArgument("targetUserId") { type = NavType.StringType },
+                navArgument("targetUserName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val targetUserId = backStackEntry.arguments?.getString("targetUserId") ?: ""
+            val targetUserName = backStackEntry.arguments?.getString("targetUserName") ?: "Người dùng"
+
+            ChatScreen(
+                currentUserId = authViewModel.userId.toString(),
+                targetUserId = targetUserId,
+                targetUserName = targetUserName,
                 onNavigateBack = { navController.popBackStack() }
             )
         }

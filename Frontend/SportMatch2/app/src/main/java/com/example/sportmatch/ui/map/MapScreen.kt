@@ -46,7 +46,7 @@ import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 fun MapScreen(
     currentUserId: Int,
     onNavigateToBack: () -> Unit,
-    onNavigateToChat: (receiverId: Int) -> Unit,
+    onNavigateToChat: (String, String) -> Unit,
     viewModel: MapViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -532,46 +532,46 @@ fun MapScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             // --- PHẦN 3: CỤM NÚT CHỨC NĂNG PHỤ (GỌI ĐIỆN & LIÊN HỆ CHAT) ---
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // NÚT GỌI ĐIỆN TRỰC TIẾP
-                                OutlinedButton(
-                                    onClick = {
-                                        val phoneNumber = matchData.hostPhone
-                                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:$phoneNumber")
-                                        }
-                                        context.startActivity(dialIntent)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50))
+                            if (matchData.hostId != currentUserId) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Call, contentDescription = "Call")
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Gọi điện", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                }
+                                    // NÚT GỌI ĐIỆN
+                                    OutlinedButton(
+                                        onClick = {
+                                            val phoneNumber = matchData.hostPhone
+                                            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:$phoneNumber")
+                                            }
+                                            context.startActivity(dialIntent)
+                                        },
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50))
+                                    ) {
+                                        Icon(Icons.Default.Call, contentDescription = "Call")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Gọi điện", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    }
 
-                                // NÚT LIÊN HỆ CHAT
-                                OutlinedButton(
-                                    onClick = {
-                                        onNavigateToChat(matchData.hostId)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3))
-                                ) {
-                                    Icon(Icons.Default.Send, contentDescription = "Chat")
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Nhắn tin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    // NÚT NHẮN TIN
+                                    OutlinedButton(
+                                        onClick = {
+                                            selectedMatchDetail?.let { matchData ->
+                                                onNavigateToChat(matchData.hostId.toString(), matchData.hostName)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3))
+                                    ) {
+                                        Icon(Icons.Default.Send, contentDescription = "Chat")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Nhắn tin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
 
