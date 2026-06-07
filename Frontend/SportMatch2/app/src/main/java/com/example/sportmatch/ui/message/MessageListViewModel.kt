@@ -18,6 +18,9 @@ class MessageListViewModel : ViewModel() {
 
     fun loadRecentChats(currentUserId: String) {
         repository.listenForRecentChats(currentUserId) { chats ->
+            chats.forEach { chat ->
+                android.util.Log.d("DEBUG_CHAT", "Chat: ${chat.roomId}, isRead: ${chat.isRead}")
+            }
             _recentChats.value = chats
         }
     }
@@ -25,7 +28,6 @@ class MessageListViewModel : ViewModel() {
     val userProfiles = mutableStateOf<Map<String, UserDto>>(emptyMap())
 
     fun fetchUserProfile(userId: String) {
-        // 🟢 Thử ép kiểu userId về String chuẩn xác nhất có thể ở đây
         val docId = userId.trim()
 
         if (userProfiles.value.containsKey(docId)) return
@@ -43,5 +45,12 @@ class MessageListViewModel : ViewModel() {
             .addOnFailureListener { e ->
                 println("DEBUG: Lỗi load Firebase: ${e.message}")
             }
+    }
+
+    val readChats = mutableStateOf<Set<String>>(emptySet())
+    // Gọi lệnh cập nhật trạng thái "Đã đọc" xuống Repository
+    fun markChatAsRead(roomId: String) {
+        repository.markAsRead(roomId)
+        readChats.value = readChats.value + roomId // Thêm vào set đã đọc
     }
 }

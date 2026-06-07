@@ -22,6 +22,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import com.example.sportmatch.data.dto.RecentChatDto
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,13 +70,26 @@ fun MessageListScreen(
                     LaunchedEffect(targetUserId) { viewModel.fetchUserProfile(targetUserId) }
                     val userProfile = viewModel.userProfiles.value[targetUserId]
                     val displayName = userProfile?.fullName ?: "Đang tải..."
+                    val displayAvatar = userProfile?.avatarUrl
+                    val isReadLocally = viewModel.readChats.value.contains(chat.roomId) || chat.isRead
+                    val isUnreadForMe = !isReadLocally && chat.senderId != currentUserId
 
                     ChatListItem(
                         chat = chat,
                         targetUserId = targetUserId,
                         currentUserId = currentUserId,
                         targetUserName = displayName, // Truyền tên thật
-                        onClick = { id, name -> onNavigateToChatDetail(id, name) }
+                        targetUserAvatar = displayAvatar,
+                        isUnread = isUnreadForMe,
+                        onClick = { id, name ->
+                            // 1. Kiểm tra: Nếu tin nhắn cuối không phải do mình gửi thì mới đánh dấu đã đọc
+                            if (chat.senderId != currentUserId) {
+                                viewModel.markChatAsRead(chat.roomId)
+                            }
+
+                            // 2. Chuyển sang màn hình chat chi tiết
+                            onNavigateToChatDetail(id, name)
+                        }
                     )
                 }
             }
@@ -88,15 +103,17 @@ fun ChatListItem(
     targetUserId: String,
     currentUserId: String,
     targetUserName: String,
+    targetUserAvatar: String?,
+    isUnread: Boolean,
     onClick: (String, String) -> Unit
 ) {
     val isMe = chat.senderId == currentUserId
     val prefix = if (isMe) "Bạn: " else ""
+    val isUnreadForMe = !chat.isRead && !isMe
 
     // Logic in đậm nếu chưa đọc
-    val fontWeight = if (chat.isRead) FontWeight.Normal else FontWeight.Bold
-    val textColor = if (chat.isRead) Color.Gray else Color.Black
-
+    val fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal
+    val textColor = if (isUnread) Color.Black else Color.Gray
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -105,19 +122,35 @@ fun ChatListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Avatar
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(Color(0xFFE0E0E0)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = targetUserName.take(1).uppercase(),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Gray
+        if (!targetUserAvatar.isNullOrBlank()) {
+            AsyncImage(
+                model = targetUserAvatar,
+                contentDescription = "Avatar",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color.LightGray)
             )
+        } else {
+            // Fallback khi không có ảnh
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE0E0E0)),
+                contentAlignment = Alignment.Center
+            ) {
+                val initialChar = if (targetUserName.isNotBlank() && targetUserName != "Đang tải...") {
+                    targetUserName.take(1).uppercase()
+                } else "?"
+                Text(
+                    text = initialChar,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Gray
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -126,7 +159,7 @@ fun ChatListItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = targetUserName,
-                fontWeight = if (chat.isRead) FontWeight.Bold else FontWeight.ExtraBold,
+                fontWeight = if (isUnreadForMe) FontWeight.ExtraBold else FontWeight.Bold,
                 fontSize = 16.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

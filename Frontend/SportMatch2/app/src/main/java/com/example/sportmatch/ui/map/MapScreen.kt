@@ -38,6 +38,8 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -394,19 +396,31 @@ fun MapScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    color = Color(0xFFE3F2FD),
-                                    modifier = Modifier.size(52.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = "Avatar",
-                                        tint = Color(0xFF2196F3),
-                                        modifier = Modifier.padding(12.dp)
+                                if (!matchData.hostAvatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = matchData.hostAvatarUrl,
+                                        contentDescription = "Avatar Chủ kèo",
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                            .background(Color.LightGray)
                                     )
+                                } else {
+                                    // Fallback: Nếu không có ảnh thì hiện lại Icon mặc định
+                                    Surface(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = Color(0xFFE3F2FD),
+                                        modifier = Modifier.size(52.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = "Avatar",
+                                            tint = Color(0xFF2196F3),
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
                                 }
-
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {

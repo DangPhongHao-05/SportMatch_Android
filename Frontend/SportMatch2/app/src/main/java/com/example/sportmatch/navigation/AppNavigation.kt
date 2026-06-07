@@ -41,6 +41,7 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         composable(Screen.Home.route) {
             HomeScreen(
                 userName = authViewModel.userFullName,
+                userAvatar = authViewModel.userAvatar,
                 onNavigateToMap = { navController.navigate(Screen.Map.route) },
                 onNavigateToMessages = { navController.navigate(Screen.Messages.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
@@ -81,18 +82,20 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 currentUserPhone = authViewModel.phoneNumber,
                 currentUserCreatedAt = authViewModel.userCreatedAt,
                 onUpdateSystemData = { newName, newAvatar ->
-                            // Cập nhật lại biến trên RAM của AuthViewModel để các màn hình khác (Home, Map) lập tức nhận diện tên mới
-                    authViewModel.updateLocalUser(newName, newAvatar) },
-                        onNavigateToBack = {
-                            navController.popBackStack()
-                        },
-                        onLogoutSuccess = {
-                            authViewModel.resetToPhoneState()
-                            // Dọn dẹp sạch sẽ lịch sử trang và ép văng người dùng về màn hình Login
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(0) { inclusive = true } // popupTo(0) xóa sạch toàn bộ BackStack, chống bấm nút Back của điện thoại chui lại vào App
-                            }
-                        }
+                    // Ép AuthViewModel giữ lại link cũ nếu newAvatar bị null
+                    val finalAvatar = newAvatar ?: authViewModel.userAvatar
+                    authViewModel.updateLocalUser(newName, finalAvatar)
+                },
+                onNavigateToBack = {
+                    navController.popBackStack()
+                },
+                onLogoutSuccess = {
+                    authViewModel.resetToPhoneState()
+                    // Dọn dẹp sạch sẽ lịch sử trang và ép văng người dùng về màn hình Login
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true } // popupTo(0) xóa sạch toàn bộ BackStack, chống bấm nút Back của điện thoại chui lại vào App
+                    }
+                }
             )
         }
 

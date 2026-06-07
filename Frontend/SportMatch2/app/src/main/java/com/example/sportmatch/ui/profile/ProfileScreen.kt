@@ -1,6 +1,7 @@
 package com.example.sportmatch.ui.profile
 
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -65,6 +66,10 @@ fun ProfileScreen(
                 userId = currentUserId,
                 onSuccess = { publicUrl ->
                     editAvatarUrl = publicUrl // Cập nhật link Server trả về
+
+                    //Xóa URI tạm đi để ép AsyncImage load từ publicUrl
+                    localImageUri = null
+
                     Toast.makeText(context, "Tải ảnh lên Server thành công!", Toast.LENGTH_SHORT).show()
                 },
                 onFailure = { errorMsg ->
@@ -121,6 +126,8 @@ fun ProfileScreen(
                         model = imageToLoad,
                         contentDescription = "User Avatar",
                         contentScale = ContentScale.Crop,
+                        onSuccess = { Log.d("COIL_DEBUG", "Tải ảnh thành công từ nguồn: $imageToLoad") },
+                        onError = { error -> Log.e("COIL_DEBUG", "Tải ảnh THẤT BẠI. Lý do: ${error.result.throwable.message}") },
                         modifier = Modifier
                             .size(110.dp)
                             .clip(CircleShape)

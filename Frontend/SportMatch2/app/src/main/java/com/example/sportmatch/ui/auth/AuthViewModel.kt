@@ -152,6 +152,7 @@ class AuthViewModel : ViewModel() {
                     userFullName = user.fullName
                     phoneNumber = data.user.phoneNumber
                     userCreatedAt = data.user.createdAt ?: "Chưa xác định"
+                    userAvatar = user.avatarUrl
 
                     // Gửi token fcm
                     sendTokenToServer(userId)

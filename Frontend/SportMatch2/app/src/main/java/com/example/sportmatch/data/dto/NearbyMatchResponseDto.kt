@@ -11,6 +11,8 @@ data class NearbyMatchResponseDto(
     val hostName: String,
     @SerializedName("hostPhone")
     val hostPhone: String?,
+    @SerializedName("hostAvatarUrl")
+    val hostAvatarUrl: String?,
     @SerializedName("sportType")
     val sportType: String,
     @SerializedName("requestType")
