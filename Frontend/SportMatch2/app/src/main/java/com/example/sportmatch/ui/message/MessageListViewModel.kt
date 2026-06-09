@@ -47,10 +47,7 @@ class MessageListViewModel : ViewModel() {
             }
     }
 
-    val readChats = mutableStateOf<Set<String>>(emptySet())
-    // Gọi lệnh cập nhật trạng thái "Đã đọc" xuống Repository
     fun markChatAsRead(roomId: String) {
         repository.markAsRead(roomId)
-        readChats.value = readChats.value + roomId // Thêm vào set đã đọc
     }
 }

@@ -71,23 +71,20 @@ fun MessageListScreen(
                     val userProfile = viewModel.userProfiles.value[targetUserId]
                     val displayName = userProfile?.fullName ?: "Đang tải..."
                     val displayAvatar = userProfile?.avatarUrl
-                    val isReadLocally = viewModel.readChats.value.contains(chat.roomId) || chat.isRead
-                    val isUnreadForMe = !isReadLocally && chat.senderId != currentUserId
+                    val isUnreadForMe = !chat.isRead && chat.senderId != currentUserId
 
                     ChatListItem(
                         chat = chat,
                         targetUserId = targetUserId,
                         currentUserId = currentUserId,
-                        targetUserName = displayName, // Truyền tên thật
+                        targetUserName = displayName,
                         targetUserAvatar = displayAvatar,
                         isUnread = isUnreadForMe,
                         onClick = { id, name ->
-                            // 1. Kiểm tra: Nếu tin nhắn cuối không phải do mình gửi thì mới đánh dấu đã đọc
+                            // đánh dấu đọc lên Firebase
                             if (chat.senderId != currentUserId) {
                                 viewModel.markChatAsRead(chat.roomId)
                             }
-
-                            // 2. Chuyển sang màn hình chat chi tiết
                             onNavigateToChatDetail(id, name)
                         }
                     )

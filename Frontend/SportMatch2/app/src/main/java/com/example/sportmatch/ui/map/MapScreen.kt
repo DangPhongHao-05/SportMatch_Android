@@ -554,7 +554,16 @@ fun MapScreen(
                                     // NÚT GỌI ĐIỆN
                                     OutlinedButton(
                                         onClick = {
-                                            val phoneNumber = matchData.hostPhone
+                                            // Lấy số điện thoại gốc
+                                            val rawPhone = matchData.hostPhone ?: ""
+
+                                            // Kiểm tra nếu số bắt đầu bằng "+84" thì thay bằng "0"
+                                            val phoneNumber = if (rawPhone.startsWith("+84")) {
+                                                "0" + rawPhone.removePrefix("+84")
+                                            } else {
+                                                rawPhone
+                                            }
+
                                             val dialIntent = Intent(Intent.ACTION_DIAL).apply {
                                                 data = Uri.parse("tel:$phoneNumber")
                                             }
@@ -811,7 +820,7 @@ fun MapScreen(
                             OutlinedTextField(
                                 value = applyMessage,
                                 onValueChange = { applyMessage = it },
-                                placeholder = { Text("VD: Mình bắt gôn cực dính, cho 1 slot nha!") },
+                                placeholder = { Text("Nhập lời nhắn...") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             )

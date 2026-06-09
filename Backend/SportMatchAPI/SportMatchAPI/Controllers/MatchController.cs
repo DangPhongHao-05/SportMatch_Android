@@ -328,6 +328,7 @@ namespace SportMatchAPI.Controllers
                     {
                         Id = i.Id,
                         MatchRequestId = i.MatchRequestId,
+                        HostId = i.MatchRequest.HostId,
                         HostName = i.MatchRequest.Host.FullName, // Tên Người tổ chức để hiển thị
                         SportType = i.MatchRequest.SportType,
                         Message = i.Message,

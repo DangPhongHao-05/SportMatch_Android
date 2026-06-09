@@ -72,7 +72,12 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.androidx.ui)
-
+    /// Thư viện Emoji Picker chính chủ của Google
+    implementation("androidx.emoji2:emoji2-emojipicker:1.5.0")
+    implementation("androidx.emoji2:emoji2:1.5.0")
+    implementation(libs.androidx.emoji2.bundled)
+    //load ảnh
+    implementation("io.coil-kt:coil-compose:2.4.0")
     // Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

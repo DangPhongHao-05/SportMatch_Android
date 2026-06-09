@@ -103,6 +103,7 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         composable(Screen.Notification.route) {
             NotificationScreen(
                 currentUserId = authViewModel.userId,
+                navController = navController,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
