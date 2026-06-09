@@ -2,14 +2,22 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SportMatchAPI.Models;
+using Microsoft.Extensions.DependencyInjection; // Để dùng GetService
+using SportMatchAPI.Services; // Để dùng FirebaseSyncService
 
 namespace SportMatchAPI.Data;
 
 public partial class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options)
+    //public AppDbContext(DbContextOptions<AppDbContext> options)
+    //    : base(options)
+    //{
+    //}
+    private readonly IServiceProvider _serviceProvider;
+    public AppDbContext(DbContextOptions<AppDbContext> options, IServiceProvider serviceProvider)
         : base(options)
     {
+        _serviceProvider = serviceProvider;
     }
 
     public virtual DbSet<Matchinteraction> Matchinteractions { get; set; }
@@ -141,4 +149,38 @@ public partial class AppDbContext : DbContext
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // 1. Ép buộc quét lại mọi thay đổi
+        this.ChangeTracker.DetectChanges();
+
+        // 2. Lấy danh sách các User đã thay đổi
+        var entries = ChangeTracker.Entries<User>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+            .ToList();
+
+        // 3. Lưu vào MySQL trước
+        var result = await base.SaveChangesAsync(cancellationToken);
+
+        // 4. Nếu có thay đổi, đồng bộ (Dùng await để bắt lỗi)
+        if (entries.Any())
+        {
+            Console.WriteLine($"==> [DEBUG EF] Tìm thấy {entries.Count} User cần đồng bộ.");
+
+            var syncService = _serviceProvider.GetService<FirebaseSyncService>();
+            if (syncService != null)
+            {
+                foreach (var entry in entries)
+                {
+                    await syncService.SyncUser(entry.Entity.Id, entry.Entity.FullName, entry.Entity.AvatarUrl);
+                }
+            }
+            else
+            {
+                Console.WriteLine("==> [DEBUG EF] LỖI: Không lấy được FirebaseSyncService từ DI Container.");
+            }
+        }
+        return result;
+    }
 }

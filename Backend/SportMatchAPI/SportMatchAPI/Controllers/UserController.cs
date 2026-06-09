@@ -36,7 +36,7 @@ namespace SportMatchAPI.Controllers
             // 3. Cập nhật thông tin mới
             user.FullName = request.FullName.Trim();
             user.AvatarUrl = request.AvatarUrl; // Cho phép null nếu họ xóa ảnh
-
+            _context.Entry(user).State = EntityState.Modified;
 
             // 4. Lưu xuống Database
             await _context.SaveChangesAsync();
@@ -78,11 +78,11 @@ namespace SportMatchAPI.Controllers
             try
             {
                 // 2. XỬ LÝ BẢO MẬT: Xóa Token FCM Push Notification của thiết bị này trên Server
-                // Giả sử Hào đang lưu FcmToken trong bảng Users hoặc một bảng cấu hình Token riêng.
+                // Giả sử đang lưu FcmToken trong bảng Users hoặc một bảng cấu hình Token riêng.
                 // Cần gán nó về null hoặc xóa bản ghi thiết bị đó đi để chặn nhận thông báo "ma" sau khi thoát.
 
-                user.FcmToken = null; // Bật dòng này nếu Hào lưu trực tiếp cột FcmToken trong bảng Users
-
+                user.FcmToken = null; // Bật dòng này nếu lưu trực tiếp cột FcmToken trong bảng Users
+                _context.Entry(user).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
                 return Ok(new { message = "Đăng xuất phía Server thành công, đã hủy liên kết thiết bị!" });
@@ -138,6 +138,7 @@ namespace SportMatchAPI.Controllers
 
                 // 7. Lưu link URL mới này vào MySQL
                 user.AvatarUrl = publicAvatarUrl;
+                _context.Entry(user).State = EntityState.Modified;
                 await _context.SaveChangesAsync();
 
                 // 8. Trả về cho Android cập nhật giao diện

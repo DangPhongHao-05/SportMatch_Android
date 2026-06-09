@@ -17,14 +17,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     userName: String,
+    userAvatar: String?,
     onNavigateToMap: () -> Unit,
     onNavigateToMessages: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -57,56 +60,49 @@ fun HomeScreen(
 
     Scaffold(
         bottomBar = {
-            // NÂNG CẤP BOTTOM BAR: Bo góc dạng vòm ôm trọn các nút chức năng
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp) // Tạo viền lơ lửng cực sang
+                    .padding(horizontal = 8.dp, vertical = 10.dp)
                     .shadow(16.dp, shape = RoundedCornerShape(28.dp), clip = false),
                 shape = RoundedCornerShape(28.dp),
-                color = Color.White,
-                tonalElevation = 4.dp
+                color = Color.White
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(68.dp)
-                        .padding(horizontal = 8.dp),
+                        .height(68.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Nút Home (Trang chủ hiện tại)
-                    IconButton(onClick = { /* Đang ở chính nó */ }, modifier = Modifier.weight(1f)) {
+                    IconButton(onClick = { /* Home */ }, modifier = Modifier.weight(1f)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF2196F3), modifier = Modifier.size(26.dp))
-                            Text("Trang chủ", fontSize = 10.sp, color = Color(0xFF2196F3), fontWeight = FontWeight.Medium)
+                            Icon(Icons.Default.Home, contentDescription = "Home", tint = Color(0xFF2196F3), modifier = Modifier.size(24.dp))
+                            Text("Trang chủ", fontSize = 9.sp, color = Color(0xFF2196F3), fontWeight = FontWeight.Medium, maxLines = 1)
                         }
                     }
 
-                    // Nút Messages (Tin nhắn)
                     IconButton(onClick = onNavigateToMessages, modifier = Modifier.weight(1f)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Email, contentDescription = "Messages", tint = Color.Gray)
-                            Text("Tin nhắn", fontSize = 10.sp, color = Color.Gray)
+                            Icon(Icons.Default.Email, contentDescription = "Messages", tint = Color.Gray, modifier = Modifier.size(24.dp))
+                            Text("Tin nhắn", fontSize = 9.sp, color = Color.Gray, maxLines = 1)
                         }
                     }
 
-                    // KHOẢNG TRỐNG TRŨNG XUỐNG DÀNH RIÊNG ĐỂ ÔM SÁT NÚT MAP KHÔNG BỊ CHÈN CHỮ
-                    Spacer(modifier = Modifier.weight(1.2f))
+                    // Spacer này vẫn giữ nguyên để chừa chỗ cho FAB
+                    Spacer(modifier = Modifier.weight(1f))
 
-                    // Nút Thông báo
                     IconButton(onClick = onNavigateToNotifications, modifier = Modifier.weight(1f)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.Gray)
-                            Text("Thông báo", fontSize = 10.sp, color = Color.Gray)
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications", tint = Color.Gray, modifier = Modifier.size(24.dp))
+                            Text("Thông báo", fontSize = 9.sp, color = Color.Gray, maxLines = 1)
                         }
                     }
 
-                    // Nút Profile (Hồ sơ)
                     IconButton(onClick = onNavigateToProfile, modifier = Modifier.weight(1f)) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Person, contentDescription = "Profile", tint = Color.Gray)
-                            Text("Hồ sơ", fontSize = 10.sp, color = Color.Gray)
+                            Icon(Icons.Default.Person, contentDescription = "Profile", tint = Color.Gray, modifier = Modifier.size(24.dp))
+                            Text("Hồ sơ", fontSize = 9.sp, color = Color.Gray, maxLines = 1)
                         }
                     }
                 }
@@ -160,13 +156,13 @@ fun HomeScreen(
         },
         floatingActionButtonPosition = FabPosition.Center
     ) { paddingValues ->
-        // GIAO DIỆN NỘI DUNG TRANG CHỦ (GIỮ NGUYÊN LOGIC CỦA HÀO)
+        // GIAO DIỆN NỘI DUNG TRANG CHỦ
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = paddingValues.calculateTopPadding())
                 .background(Color(0xFFF5F5F5))
-                .padding(20.dp)
+                .padding(paddingValues)
+                .padding(horizontal = 20.dp)
         ) {
             // Header hiển thị tên User động
             Row(
@@ -176,19 +172,34 @@ fun HomeScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = "Chào mừng trở lại,", fontSize = 16.sp, color = Color.Gray)
                     Text(
-                        text = "$userName!",
+                        text = "$userName",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .background(Color(0xFF2196F3), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = userName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                if (!userAvatar.isNullOrBlank()) {
+                    // Nếu có link ảnh thì dùng Coil để load ảnh
+                    AsyncImage(
+                        model = userAvatar,
+                        contentDescription = "Avatar Trang chủ",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                    )
+                } else {
+                    // Nếu không có ảnh thì lấy chữ cái đầu của tên (Fallback an toàn)
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(Color(0xFF2196F3), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val initialChar = if (userName.isNotBlank()) userName.take(1).uppercase() else "?"
+                        Text(text = initialChar, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    }
                 }
             }
 
@@ -200,15 +211,35 @@ fun HomeScreen(
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF2196F3)),
                 modifier = Modifier.fillMaxWidth().height(150.dp)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(text = "Sẵn sàng ra sân chưa?", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Tìm các trận đấu quanh bạn ngay lập tức!", color = Color.White.copy(alpha = 0.8f))
-                    Spacer(modifier = Modifier.height(15.dp))
+                Column(
+                    modifier = Modifier.padding(20.dp)
+                ) {
+                    Text(
+                        text = "Sẵn sàng ra sân chưa?",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Tìm các trận đấu quanh bạn ngay lập tức!",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     Button(
                         onClick = onNavigateToMap,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        modifier = Modifier.fillMaxWidth().height(45.dp),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(text = "Quét bản đồ ngay", color = Color(0xFF2196F3))
+                        Text(
+                            text = "Quét bản đồ ngay",
+                            color = Color(0xFF2196F3),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            maxLines = 1
+                        )
                     }
                 }
             }

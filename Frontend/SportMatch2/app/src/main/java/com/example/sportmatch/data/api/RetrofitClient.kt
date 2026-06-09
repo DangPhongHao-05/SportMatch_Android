@@ -7,6 +7,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 object RetrofitClient {
     // đổi IP nếu bạn test trên máy thật (VD: 192.168.x.x)
 //    private const val BASE_URL = "http://10.0.2.2:5020/"
+
 //    private const val BASE_URL = "http://192.168.1.5:5020/"
     const val BASE_URL = "https://sportmatchapi.fly.dev/"
 

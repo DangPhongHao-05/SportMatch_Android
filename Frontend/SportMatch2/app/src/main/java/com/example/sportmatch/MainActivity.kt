@@ -22,6 +22,11 @@ import com.example.sportmatch.ui.theme.SportMatchTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // KÍCH HOẠT FONT EMOJI
+        val config = androidx.emoji2.bundled.BundledEmojiCompatConfig(this)
+        androidx.emoji2.text.EmojiCompat.init(config)
+
         enableEdgeToEdge()
 
         // Kích hoạt xin quyền thông báo ngay khi mở App (Dành cho Android 13 / API 33 trở lên)
@@ -31,8 +36,7 @@ class MainActivity : ComponentActivity() {
             SportMatchTheme {
                 // Scaffold tự động tính toán và chừa khoảng trống hệ thống cho toàn bộ các trang con
                 Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    contentWindowInsets = WindowInsets.safeDrawing
+                    modifier = Modifier.fillMaxSize()
                 ) { innerPadding ->
                     Box(
                         modifier = Modifier

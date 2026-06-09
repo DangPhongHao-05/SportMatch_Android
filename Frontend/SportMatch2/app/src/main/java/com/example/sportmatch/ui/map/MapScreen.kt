@@ -38,6 +38,8 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
@@ -46,7 +48,7 @@ import com.example.sportmatch.data.dto.NearbyMatchResponseDto
 fun MapScreen(
     currentUserId: Int,
     onNavigateToBack: () -> Unit,
-    onNavigateToChat: (receiverId: Int) -> Unit,
+    onNavigateToChat: (String, String) -> Unit,
     viewModel: MapViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -183,7 +185,7 @@ fun MapScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, start = 12.dp, end = 12.dp),
+                    .padding(top = 24.dp, start = 12.dp, end = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // NÚT QUAY LẠI MÀN HÌNH TRƯỚC
@@ -394,19 +396,31 @@ fun MapScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Surface(
-                                    shape = androidx.compose.foundation.shape.CircleShape,
-                                    color = Color(0xFFE3F2FD),
-                                    modifier = Modifier.size(52.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Person,
-                                        contentDescription = "Avatar",
-                                        tint = Color(0xFF2196F3),
-                                        modifier = Modifier.padding(12.dp)
+                                if (!matchData.hostAvatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = matchData.hostAvatarUrl,
+                                        contentDescription = "Avatar Chủ kèo",
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(androidx.compose.foundation.shape.CircleShape)
+                                            .background(Color.LightGray)
                                     )
+                                } else {
+                                    // Fallback: Nếu không có ảnh thì hiện lại Icon mặc định
+                                    Surface(
+                                        shape = androidx.compose.foundation.shape.CircleShape,
+                                        color = Color(0xFFE3F2FD),
+                                        modifier = Modifier.size(52.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = "Avatar",
+                                            tint = Color(0xFF2196F3),
+                                            modifier = Modifier.padding(12.dp)
+                                        )
+                                    }
                                 }
-
                                 Spacer(modifier = Modifier.width(12.dp))
 
                                 Column(modifier = Modifier.weight(1f)) {
@@ -532,46 +546,55 @@ fun MapScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             // --- PHẦN 3: CỤM NÚT CHỨC NĂNG PHỤ (GỌI ĐIỆN & LIÊN HỆ CHAT) ---
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // NÚT GỌI ĐIỆN TRỰC TIẾP
-                                OutlinedButton(
-                                    onClick = {
-                                        val phoneNumber = matchData.hostPhone
-                                        val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                                            data = Uri.parse("tel:$phoneNumber")
-                                        }
-                                        context.startActivity(dialIntent)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50))
+                            if (matchData.hostId != currentUserId) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Call, contentDescription = "Call")
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Gọi điện", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                }
+                                    // NÚT GỌI ĐIỆN
+                                    OutlinedButton(
+                                        onClick = {
+                                            // Lấy số điện thoại gốc
+                                            val rawPhone = matchData.hostPhone ?: ""
 
-                                // NÚT LIÊN HỆ CHAT
-                                OutlinedButton(
-                                    onClick = {
-                                        onNavigateToChat(matchData.hostId)
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3))
-                                ) {
-                                    Icon(Icons.Default.Send, contentDescription = "Chat")
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Nhắn tin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                            // Kiểm tra nếu số bắt đầu bằng "+84" thì thay bằng "0"
+                                            val phoneNumber = if (rawPhone.startsWith("+84")) {
+                                                "0" + rawPhone.removePrefix("+84")
+                                            } else {
+                                                rawPhone
+                                            }
+
+                                            val dialIntent = Intent(Intent.ACTION_DIAL).apply {
+                                                data = Uri.parse("tel:$phoneNumber")
+                                            }
+                                            context.startActivity(dialIntent)
+                                        },
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50))
+                                    ) {
+                                        Icon(Icons.Default.Call, contentDescription = "Call")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Gọi điện", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+
+                                    // NÚT NHẮN TIN
+                                    OutlinedButton(
+                                        onClick = {
+                                            selectedMatchDetail?.let { matchData ->
+                                                onNavigateToChat(matchData.hostId.toString(), matchData.hostName)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f).height(48.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF2196F3)),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF2196F3))
+                                    ) {
+                                        Icon(Icons.Default.Send, contentDescription = "Chat")
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Nhắn tin", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
 
@@ -797,7 +820,7 @@ fun MapScreen(
                             OutlinedTextField(
                                 value = applyMessage,
                                 onValueChange = { applyMessage = it },
-                                placeholder = { Text("VD: Mình bắt gôn cực dính, cho 1 slot nha!") },
+                                placeholder = { Text("Nhập lời nhắn...") },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             )
