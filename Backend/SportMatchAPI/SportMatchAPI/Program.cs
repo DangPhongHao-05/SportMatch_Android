@@ -1,6 +1,7 @@
 ﻿using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using SportMatchAPI.Data;
 using SportMatchAPI.Services;
 
@@ -47,6 +48,13 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "avatars")),
+    RequestPath = "/avatars"
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

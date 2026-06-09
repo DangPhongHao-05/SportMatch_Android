@@ -131,10 +131,13 @@ namespace SportMatchAPI.Controllers
                     await file.CopyToAsync(fileStream);
                 }
 
+                string baseUrl = "https://sportmatchapi.fly.dev";
+                var publicAvatarUrl = $"{baseUrl}/avatars/{uniqueFileName}";
+
                 // 6. Tự động sinh đường link URL động dựa theo Host đang chạy (Hỗ trợ cả Localhost lẫn IP máy thật)
                 var requestScheme = Request.Scheme; // http hoặc https
                 var requestHost = Request.Host;     // VD: 10.0.2.2:5020 hoặc 192.168.1.5:5020
-                var publicAvatarUrl = $"{requestScheme}://{requestHost}/avatars/{uniqueFileName}";
+                //var publicAvatarUrl = $"{requestScheme}://{requestHost}/avatars/{uniqueFileName}";
 
                 // 7. Lưu link URL mới này vào MySQL
                 user.AvatarUrl = publicAvatarUrl;
@@ -142,7 +145,7 @@ namespace SportMatchAPI.Controllers
                 await _context.SaveChangesAsync();
 
                 // 8. Trả về cho Android cập nhật giao diện
-                return Ok(new
+                return Ok(new   
                 {
                     message = "Tải ảnh lên Server thành công!",
                     avatarUrl = publicAvatarUrl
