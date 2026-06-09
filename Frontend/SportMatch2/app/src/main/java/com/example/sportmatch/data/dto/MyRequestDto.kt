@@ -5,6 +5,7 @@ import com.google.gson.annotations.SerializedName
 data class MyRequestDto(
     @SerializedName("id") val id: Int,
     @SerializedName("matchRequestId") val matchRequestId: Int,
+    @SerializedName("hostId") val hostId: Int,
     @SerializedName("hostName") val hostName: String,
     @SerializedName("sportType") val sportType: String,
     @SerializedName("message") val message: String?,

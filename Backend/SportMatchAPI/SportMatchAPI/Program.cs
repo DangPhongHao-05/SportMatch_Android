@@ -9,11 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // 1. Lấy chuỗi kết nối từ appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+string pathToKey = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "firebase-adminsdk.json");
 // Khởi tạo Firebase Admin SDK
 try
 {
-    string pathToKey = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "firebase-adminsdk.json");
     if (File.Exists(pathToKey))
     {
         FirebaseApp.Create(new AppOptions()
@@ -39,6 +38,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 // Đăng ký dịch vụ tự động quét dọn kèo quá hạn chạy ngầm
 builder.Services.AddHostedService<MatchCleanupService>();
+
+//dong bo firebase
+builder.Services.AddSingleton(new FirebaseSyncService("auth-85e5f", pathToKey));
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

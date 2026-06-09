@@ -2,13 +2,17 @@ package com.example.sportmatch.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.sportmatch.ui.auth.AuthViewModel
 import com.example.sportmatch.ui.auth.LoginScreen
 import com.example.sportmatch.ui.match.HomeScreen
 import com.example.sportmatch.ui.match.MapScreen
+import com.example.sportmatch.ui.message.ChatScreen
+import com.example.sportmatch.ui.message.MessageListScreen
 import com.example.sportmatch.ui.notification.NotificationScreen
 import com.example.sportmatch.ui.profile.ProfileScreen
 
@@ -37,6 +41,7 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         composable(Screen.Home.route) {
             HomeScreen(
                 userName = authViewModel.userFullName,
+                userAvatar = authViewModel.userAvatar,
                 onNavigateToMap = { navController.navigate(Screen.Map.route) },
                 onNavigateToMessages = { navController.navigate(Screen.Messages.route) },
                 onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
@@ -49,15 +54,23 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
             MapScreen(
                 currentUserId = authViewModel.userId,
                 onNavigateToBack = { navController.popBackStack() },
-                onNavigateToChat = { hostId ->
-                    // Luồng chat xử lý sau
+                onNavigateToChat = { hostId, hostName ->
+                    navController.navigate(Screen.Chat.createRoute(hostId.toString(), hostName))
                 }
             )
         }
 
         // 4. Màn hình Tin nhắn (Messages)
         composable(Screen.Messages.route) {
-            // Gọi màn hình danh sách Chat ở đây
+            MessageListScreen(
+                currentUserId = authViewModel.userId.toString(),
+                onNavigateToChatDetail = { targetUserId, targetUserName ->
+                    navController.navigate(Screen.Chat.createRoute(targetUserId, targetUserName))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         // 5. Màn hình Hồ sơ (Profile)
@@ -69,18 +82,20 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
                 currentUserPhone = authViewModel.phoneNumber,
                 currentUserCreatedAt = authViewModel.userCreatedAt,
                 onUpdateSystemData = { newName, newAvatar ->
-                            // Cập nhật lại biến trên RAM của AuthViewModel để các màn hình khác (Home, Map) lập tức nhận diện tên mới
-                    authViewModel.updateLocalUser(newName, newAvatar) },
-                        onNavigateToBack = {
-                            navController.popBackStack()
-                        },
-                        onLogoutSuccess = {
-                            authViewModel.resetToPhoneState()
-                            // Dọn dẹp sạch sẽ lịch sử trang và ép văng người dùng về màn hình Login
-                            navController.navigate(Screen.Login.route) {
-                                popUpTo(0) { inclusive = true } // popupTo(0) xóa sạch toàn bộ BackStack, chống bấm nút Back của điện thoại chui lại vào App
-                            }
-                        }
+                    // Ép AuthViewModel giữ lại link cũ nếu newAvatar bị null
+                    val finalAvatar = newAvatar ?: authViewModel.userAvatar
+                    authViewModel.updateLocalUser(newName, finalAvatar)
+                },
+                onNavigateToBack = {
+                    navController.popBackStack()
+                },
+                onLogoutSuccess = {
+                    authViewModel.resetToPhoneState()
+                    // Dọn dẹp sạch sẽ lịch sử trang và ép văng người dùng về màn hình Login
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true } // popupTo(0) xóa sạch toàn bộ BackStack, chống bấm nút Back của điện thoại chui lại vào App
+                    }
+                }
             )
         }
 
@@ -88,6 +103,26 @@ fun AppNavigation(authViewModel: AuthViewModel = viewModel()) {
         composable(Screen.Notification.route) {
             NotificationScreen(
                 currentUserId = authViewModel.userId,
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // Trong AppNavigation.kt
+        composable(
+            route = "chat_screen/{targetUserId}/{targetUserName}",
+            arguments = listOf(
+                navArgument("targetUserId") { type = NavType.StringType },
+                navArgument("targetUserName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val targetUserId = backStackEntry.arguments?.getString("targetUserId") ?: ""
+            val targetUserName = backStackEntry.arguments?.getString("targetUserName") ?: "Người dùng"
+
+            ChatScreen(
+                currentUserId = authViewModel.userId.toString(),
+                targetUserId = targetUserId,
+                targetUserName = targetUserName,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
