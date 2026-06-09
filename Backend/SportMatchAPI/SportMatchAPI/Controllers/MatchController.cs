@@ -65,6 +65,7 @@ namespace SportMatchAPI.Controllers
                         m.HostId,
                         HostName = m.Host.FullName,
                         HostPhone = m.Host.PhoneNumber,
+                        HostAvatarUrl = m.Host.AvatarUrl,
                         m.SportType,
                         m.RequestType,
                         m.MissingPlayers,
@@ -87,6 +88,7 @@ namespace SportMatchAPI.Controllers
                             m.HostId,
                             m.HostName,
                             m.HostPhone,
+                            m.HostAvatarUrl,
                             m.SportType,
                             m.RequestType,
                             m.MissingPlayers,
@@ -326,6 +328,7 @@ namespace SportMatchAPI.Controllers
                     {
                         Id = i.Id,
                         MatchRequestId = i.MatchRequestId,
+                        HostId = i.MatchRequest.HostId,
                         HostName = i.MatchRequest.Host.FullName, // Tên Người tổ chức để hiển thị
                         SportType = i.MatchRequest.SportType,
                         Message = i.Message,

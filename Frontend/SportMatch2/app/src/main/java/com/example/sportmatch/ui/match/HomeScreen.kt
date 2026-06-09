@@ -17,14 +17,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     userName: String,
+    userAvatar: String?,
     onNavigateToMap: () -> Unit,
     onNavigateToMessages: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -175,13 +178,28 @@ fun HomeScreen(
                         color = Color.Black
                     )
                 }
-                Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .background(Color(0xFF2196F3), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = userName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                if (!userAvatar.isNullOrBlank()) {
+                    // Nếu có link ảnh thì dùng Coil để load ảnh
+                    AsyncImage(
+                        model = userAvatar,
+                        contentDescription = "Avatar Trang chủ",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray)
+                    )
+                } else {
+                    // Nếu không có ảnh thì lấy chữ cái đầu của tên (Fallback an toàn)
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(Color(0xFF2196F3), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val initialChar = if (userName.isNotBlank()) userName.take(1).uppercase() else "?"
+                        Text(text = initialChar, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    }
                 }
             }
 

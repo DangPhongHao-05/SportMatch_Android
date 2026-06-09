@@ -2,6 +2,7 @@ package com.example.sportmatch.ui.notification
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.sportmatch.data.dto.MyRequestDto
 import com.example.sportmatch.data.dto.NotificationResponseDto
 
@@ -31,6 +33,7 @@ import com.example.sportmatch.data.dto.NotificationResponseDto
 @Composable
 fun NotificationScreen(
     currentUserId: Int,
+    navController: NavController,
     onNavigateBack: () -> Unit,
     viewModel: NotificationViewModel = viewModel()
 ) {
@@ -104,6 +107,13 @@ fun NotificationScreen(
                         items(viewModel.notifications) { notif ->
                             NotificationCard(
                                 notif = notif,
+                                onNavigateToChat = { targetUserId, targetUserName ->
+                                    if (!targetUserId.isNullOrBlank() && targetUserId != "0") {
+                                        navController.navigate("chat_screen/$targetUserId/$targetUserName")
+                                    } else {
+                                        Toast.makeText(context, "Không thể xác định người dùng!", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 onAccept = {
                                     viewModel.respondToRequest(notif.interactionId, isAccepted = true) { msg ->
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -141,6 +151,13 @@ fun NotificationScreen(
                         items(viewModel.myRequests) { request ->
                             MyRequestCard(
                                 request = request,
+                                onNavigateToChat = { targetUserId, targetUserName ->
+                                    if (!targetUserId.isNullOrBlank() && targetUserId != "0") {
+                                        navController.navigate("chat_screen/$targetUserId/$targetUserName")
+                                    } else {
+                                        Toast.makeText(context, "Không thể xác định người dùng này!", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
                                 onCancel = {
                                     viewModel.cancelMyRequest(request.id, currentUserId) { msg ->
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -160,6 +177,7 @@ fun NotificationScreen(
 @Composable
 fun NotificationCard(
     notif: NotificationResponseDto,
+    onNavigateToChat: (String, String) -> Unit,
     onAccept: () -> Unit,
     onReject: () -> Unit
 ) {
@@ -175,8 +193,12 @@ fun NotificationCard(
                     Icon(Icons.Default.Person, "", tint = Color(0xFF2196F3), modifier = Modifier.padding(10.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = notif.senderName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onNavigateToChat(notif.userId.toString(), notif.senderName) }
+                ) {
+                    Text(text = notif.senderName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color(0xFF2196F3))
                     Text(text = "Muốn tham gia kèo ${notif.sportType}", color = Color.Gray, fontSize = 12.sp)
                 }
             }
@@ -263,6 +285,7 @@ fun NotificationCard(
 @Composable
 fun MyRequestCard(
     request: MyRequestDto,
+    onNavigateToChat: (String, String) -> Unit,
     onCancel: () -> Unit
 ) {
     Card(
@@ -277,9 +300,13 @@ fun MyRequestCard(
                     Icon(Icons.Default.SportsSoccer, "", tint = Color(0xFFFF9800), modifier = Modifier.padding(10.dp))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Yêu cầu tham gia: ${request.sportType}", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text(text = "Người tổ chức: ${request.hostName}", color = Color.Gray, fontSize = 13.sp)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onNavigateToChat(request.hostId.toString(), request.hostName) }
+                ) {
+                    Text(text = "Yêu cầu: ${request.sportType}", fontWeight = FontWeight.Bold)
+                    Text(text = "Người tổ chức: ${request.hostName}", color = Color(0xFF2196F3), fontSize = 13.sp)
                 }
             }
 

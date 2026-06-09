@@ -22,6 +22,11 @@ import com.example.sportmatch.ui.theme.SportMatchTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // KÍCH HOẠT FONT EMOJI
+        val config = androidx.emoji2.bundled.BundledEmojiCompatConfig(this)
+        androidx.emoji2.text.EmojiCompat.init(config)
+
         enableEdgeToEdge()
 
         // Kích hoạt xin quyền thông báo ngay khi mở App (Dành cho Android 13 / API 33 trở lên)

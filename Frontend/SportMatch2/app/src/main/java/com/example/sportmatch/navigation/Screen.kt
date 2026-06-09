@@ -7,4 +7,8 @@ sealed class Screen(val route: String) {
     object Messages : Screen("messages_screen")
     object Profile : Screen("profile_screen")
     object Notification : Screen("notification_screen")
+    object Chat : Screen("chat_screen/{targetUserId}/{targetUserName}") {
+        fun createRoute(targetUserId: String, targetUserName: String) =
+            "chat_screen/$targetUserId/$targetUserName"
+    }
 }
