@@ -1,18 +1,39 @@
 package com.example.sportmatch.data.api
 
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-
+import okhttp3.logging.HttpLoggingInterceptor
 object RetrofitClient {
     // đổi IP nếu bạn test trên máy thật (VD: 192.168.x.x)
-    private const val BASE_URL = "http://10.0.2.2:5020/"
+//    private const val BASE_URL = "http://10.0.2.2:5020/"
 //    private const val BASE_URL = "http://192.168.1.5:5020/"
+    const val BASE_URL = "https://sportmatchapi.fly.dev/"
+
+    // 1. Tạo Interceptor để xem log
+    private val logging = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BODY
+    }
+
+    // 2. Tạo Client và gắn Interceptor vào
+    private val client = OkHttpClient.Builder()
+        .addInterceptor(logging)
+        .build()
+
+    // 3. Truyền client vào Retrofit
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
+            .client(client) // Giờ nó đã nhận biến client ở trên rồi!
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
+//    private val retrofit: Retrofit by lazy {
+//        Retrofit.Builder()
+//            .baseUrl(BASE_URL)
+//            .addConverterFactory(GsonConverterFactory.create())
+//            .build()
+//    }
 
     val authApi: AuthApiService by lazy {
         retrofit.create(AuthApiService::class.java)

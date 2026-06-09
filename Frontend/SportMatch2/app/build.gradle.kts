@@ -69,6 +69,8 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx")
     // Thư viện Firebase Storage
     implementation("com.google.firebase:firebase-storage-ktx:20.3.0")
+    // Thêm dòng này để dùng Interceptor log
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation(libs.androidx.compose.foundation)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
